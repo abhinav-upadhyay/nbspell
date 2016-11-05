@@ -144,8 +144,8 @@ edits1 (char *word)
 			/* Inserts */
 			char *candidate = emalloc(wordlen + 2);
 			memcpy(candidate, splits[i].a, len_a);
-			memcpy(candidate + len_a, &alphabet, 1);
-			if (len_b >=1)
+			candidate[len_a] = alphabet;
+			if (len_b >= 1)
 				memcpy(candidate + len_a + 1, splits[i].b, len_b);
 			candidate[wordlen + 1] = 0;
 			candidates[counter++] = candidate;
