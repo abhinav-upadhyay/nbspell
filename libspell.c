@@ -72,12 +72,10 @@ lower(char *str)
 static char **
 edits1 (char *word)
 {
-	size_t i;
-	size_t len_a;
-	size_t len_b;
-	size_t counter = 0;
+	size_t i, len_a, len_b;
 	char alphabet;
 	size_t wordlen = strlen(word);
+	size_t counter = 0;
 	set splits[wordlen + 1];
 	
 	/* calculate number of possible permutations and allocate memory */
@@ -164,8 +162,7 @@ edits1 (char *word)
 static char **
 get_corrections(char **candidate_list)
 {
-	size_t i = 0;
-	size_t corrections_count = 0;
+	size_t i, corrections_count = 0;
 	char **corrections = emalloc (16 * sizeof(char *));
 	if (candidate_list == NULL)
 		return NULL;
