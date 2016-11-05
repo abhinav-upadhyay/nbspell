@@ -32,6 +32,5 @@
 *.dSYM/
 *.su
 spell
-spell.o
 dict.c
 .gdbinit

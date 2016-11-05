@@ -3,7 +3,7 @@
 .include <bsd.own.mk>
 
 PROGS=			spell
-SRCS=		spell.c
+SRCS.spell=		spell.c libspell.c
 
 LDADD+= -lutil
 
