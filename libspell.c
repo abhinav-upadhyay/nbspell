@@ -130,13 +130,15 @@ edits1 (char *word)
 		for (alphabet = 'a'; alphabet <= 'z'; alphabet++) {
 			/* Replaces */
 			if (i < wordlen) {
-				char *candidate = emalloc(wordlen + 1);
-				memcpy(candidate, splits[i].a, len_a);
-				memcpy(candidate + len_a, &alphabet, 1);
-				if (len_b - 1 >= 1)
-					memcpy(candidate + len_a + 1, splits[i].b + 1, len_b - 1);
-				candidate[wordlen] = 0;
-				candidates[counter++] = candidate;
+				if (splits[i].b[0] != alphabet ) {
+					char *candidate = emalloc(wordlen + 1);
+					memcpy(candidate, splits[i].a, len_a);
+					candidate[len_a] = alphabet;
+					if (len_b - 1 >= 1)
+						memcpy(candidate + len_a + 1, splits[i].b + 1, len_b - 1);
+					candidate[wordlen] = 0;
+					candidates[counter++] = candidate;
+				}
 			}
 
 			/* Inserts */
@@ -167,9 +169,9 @@ edits1 (char *word)
 static char **
 get_corrections(char **candidate_list)
 {
-	int i = 0;
-	char **corrections = emalloc (16 * sizeof(char *));
+	size_t i = 0;
 	size_t corrections_count = 0;
+	char **corrections = emalloc (16 * sizeof(char *));
 	if (candidate_list == NULL)
 		return NULL;
 
@@ -204,35 +206,12 @@ free_list(char **list)
 char **
 spell(char *word)
 {
-	int i;
 	char **corrections = NULL;
 	char **candidates;
-	char **cand2 = NULL;
-	
 	lower(word);
 	candidates = edits1(word);
 	corrections = get_corrections(candidates);
-	/* No matches found ? Let's go further and find matches at edit distance 2.
-	 * To make the search fast we use a heuristic. Take one word at a time from 
-	 * candidates, generate it's permutations and look if a match is found.
-	 * If a match is found, exit the loop. Works reasonably fast but accuracy 
-	 * is not quite there in some cases.
-	 */
-	if (corrections == NULL) {
-		for (i = 0; ; i++) {
-			if (candidates[i] == NULL)
-				break;
-			cand2 = edits1(candidates[i]);
-			if ((corrections = get_corrections(cand2)))
-				break;
-			else {
-				free_list(cand2);
-				cand2 = NULL;
-			}
-		}
-	}
 	free_list(candidates);
-	free_list(cand2);
 	return corrections;
 }
 
