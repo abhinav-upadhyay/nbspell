@@ -70,26 +70,26 @@ lower(char *str)
  *      time. 26 * (n + 1) possible permutations.
  */
 static char **
-edits1 (char *word, size_t *result_size)
+edits1 (char *word)
 {
 	unsigned int i;
 	size_t len_a;
 	size_t len_b;
 	unsigned int counter = 0;
 	char alphabet;
-	size_t n = strlen(word);
-	set splits[n + 1];
+	size_t wordlen = strlen(word);
+	set splits[wordlen + 1];
 	
 	/* calculate number of possible permutations and allocate memory */
-	size_t size = COMBINATIONS(n);
-	char **candidates = emalloc (size * sizeof(char *));
+	size_t size = COMBINATIONS(wordlen);
+	char **candidates = emalloc ((size + 1)  * sizeof(char *));
 
 	/* Start by generating a split up of the characters in the word */
-	for (i = 0; i < n + 1; i++) {
+	for (i = 0; i < wordlen + 1; i++) {
 		splits[i].a = (char *) emalloc(i + 1);
-		splits[i].b = (char *) emalloc(n - i + 1);
+		splits[i].b = (char *) emalloc(wordlen - i + 1);
 		memcpy(splits[i].a, word, i);
-		memcpy(splits[i].b, word + i, n - i + 1);
+		memcpy(splits[i].b, word + i, wordlen - i + 1);
 		splits[i].a[i] = 0;
 	}
 
@@ -97,24 +97,24 @@ edits1 (char *word, size_t *result_size)
 	 * counter keeps track of the current index position in the array candidates
 	 * where the next permutation needs to be stored.
 	 */
-	for (i = 0; i < n + 1; i++) {
+	for (i = 0; i < wordlen + 1; i++) {
 		len_a = strlen(splits[i].a);
 		len_b = strlen(splits[i].b);
-		assert(len_a + len_b == n);
+		assert(len_a + len_b == wordlen);
 
 		/* Deletes */
-		if (i < n) {
-			char *candidate = emalloc(n);
+		if (i < wordlen) {
+			char *candidate = emalloc(wordlen);
 			memcpy(candidate, splits[i].a, len_a);
 			if (len_b -1 > 0)
 				memcpy(candidate + len_a , splits[i].b + 1, len_b - 1);
-			candidate[n - 1] =0;
+			candidate[wordlen - 1] =0;
 			candidates[counter++] = candidate;
 		}
 
 		/* Transposes */
-		if (i < n - 1) {
-			char *candidate = emalloc(n + 1);
+		if (i < wordlen - 1) {
+			char *candidate = emalloc(wordlen + 1);
 			memcpy(candidate, splits[i].a, len_a);
 			if (len_b >= 1)
 				memcpy(candidate + len_a, splits[i].b + 1, 1);
@@ -122,39 +122,39 @@ edits1 (char *word, size_t *result_size)
 				memcpy(candidate + len_a + 1, splits[i].b, 1);
 			if (len_b >= 2)
 				memcpy(candidate + len_a + 2, splits[i].b + 2, len_b - 2);
-			candidate[n] = 0;
+			candidate[wordlen] = 0;
 			candidates[counter++] = candidate;
 		}
 
 		/* For replaces and inserts, run a loop from 'a' to 'z' */
 		for (alphabet = 'a'; alphabet <= 'z'; alphabet++) {
 			/* Replaces */
-			if (i < n) {
-				char *candidate = emalloc(n + 1);
+			if (i < wordlen) {
+				char *candidate = emalloc(wordlen + 1);
 				memcpy(candidate, splits[i].a, len_a);
 				memcpy(candidate + len_a, &alphabet, 1);
 				if (len_b - 1 >= 1)
 					memcpy(candidate + len_a + 1, splits[i].b + 1, len_b - 1);
-				candidate[n] = 0;
+				candidate[wordlen] = 0;
 				candidates[counter++] = candidate;
 			}
 
 			/* Inserts */
-			char *candidate = emalloc(n + 2);
+			char *candidate = emalloc(wordlen + 2);
 			memcpy(candidate, splits[i].a, len_a);
 			memcpy(candidate + len_a, &alphabet, 1);
 			if (len_b >=1)
 				memcpy(candidate + len_a + 1, splits[i].b, len_b);
-			candidate[n + 1] = 0;
+			candidate[wordlen + 1] = 0;
 			candidates[counter++] = candidate;
 		}
 	}
+	candidates[counter] = NULL;
 
-    for (i = 0; i < n + 1; i++) {
+    for (i = 0; i < wordlen + 1; i++) {
         free(splits[i].a);
         free(splits[i].b);
     }
-	*result_size = counter;
 	return candidates;
 }
 
@@ -165,13 +165,16 @@ edits1 (char *word, size_t *result_size)
  *  #TODO rename this function
  */
 static char **
-get_corrections(char **candidate_list, size_t list_size)
+get_corrections(char **candidate_list)
 {
-	int i;
+	int i = 0;
 	char **corrections = emalloc (16 * sizeof(char *));
 	size_t corrections_count = 0;
-	for (i = 0; i < list_size; i++) {
-		char *candidate = candidate_list[i];
+	if (candidate_list == NULL)
+		return NULL;
+
+	while(candidate_list[i] != NULL) {
+		char *candidate = candidate_list[i++];
 		if (is_known_word(candidate))
 			corrections[corrections_count++] = strdup(candidate);
 	}
@@ -180,16 +183,14 @@ get_corrections(char **candidate_list, size_t list_size)
 }
 
 void
-free_list(char **list, size_t n)
+free_list(char **list)
 {
     size_t i = 0;
     if (list == NULL)
         return;
 
-    while (i < n) {
-        free(list[i]);
-        i++;
-	}
+    while (list[i] != NULL)
+        free(list[i++]);
     free(list);
 }
 
@@ -206,13 +207,11 @@ spell(char *word)
 	int i;
 	char **corrections = NULL;
 	char **candidates;
-	size_t count2 = 0;
 	char **cand2 = NULL;
-	size_t count;
 	
 	lower(word);
-	candidates = edits1(word, &count);
-	corrections = get_corrections(candidates, count);
+	candidates = edits1(word);
+	corrections = get_corrections(candidates);
 	/* No matches found ? Let's go further and find matches at edit distance 2.
 	 * To make the search fast we use a heuristic. Take one word at a time from 
 	 * candidates, generate it's permutations and look if a match is found.
@@ -220,18 +219,20 @@ spell(char *word)
 	 * is not quite there in some cases.
 	 */
 	if (corrections == NULL) {
-		for (i = 0; i < count; i++) {
-			cand2 = edits1(candidates[i], &count2);
-			if ((corrections = get_corrections(cand2, count2)))
+		for (i = 0; ; i++) {
+			if (candidates[i] == NULL)
+				break;
+			cand2 = edits1(candidates[i]);
+			if ((corrections = get_corrections(cand2)))
 				break;
 			else {
-				free_list(cand2, count2);
+				free_list(cand2);
 				cand2 = NULL;
 			}
 		}
 	}
-	free_list(candidates, count);
-	free_list(cand2, count2);
+	free_list(candidates);
+	free_list(cand2);
 	return corrections;
 }
 

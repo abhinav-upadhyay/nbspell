@@ -11,6 +11,6 @@ typedef struct set {
 
 char ** spell(char *);
 int is_known_word(char *);
-void free_list(char **, size_t);
+void free_list(char **);
 
 #endif

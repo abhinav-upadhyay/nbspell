@@ -43,7 +43,7 @@ main(int argc, char **argv)
 			break;
 		printf("%s\n", correction);
 	}
-	free_list(corrections, 16);
+	free_list(corrections);
 	return 0;
 }
 
