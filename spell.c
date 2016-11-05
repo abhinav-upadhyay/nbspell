@@ -36,11 +36,9 @@ main(int argc, char **argv)
 {
 	char *word = argv[1];
 	char **corrections = spell(word);
-	int i;
-	for (i = 0; ;) {
+	size_t i = 0;
+	while(corrections && corrections[i] != NULL) {
 		char *correction = corrections[i++];
-		if (correction == NULL)
-			break;
 		printf("%s\n", correction);
 	}
 	free_list(corrections);
