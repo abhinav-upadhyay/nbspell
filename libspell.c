@@ -162,10 +162,10 @@ edits1 (char *word)
 static char **
 get_corrections(char **candidate_list)
 {
-	size_t i, corrections_count = 0;
-	char **corrections = emalloc (16 * sizeof(char *));
 	if (candidate_list == NULL)
 		return NULL;
+	size_t i, corrections_count = 0;
+	char **corrections = emalloc (16 * sizeof(char *));
 
 	while(candidate_list[i] != NULL) {
 		char *candidate = candidate_list[i++];
