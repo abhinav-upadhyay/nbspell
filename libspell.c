@@ -113,15 +113,12 @@ edits1 (char *word)
 		}
 
 		/* Transposes */
-		if (i < wordlen - 1) {
+		if (i < wordlen - 1 && len_b >= 2 && splits[i].b[0] != splits[i].b[1]) {
 			char *candidate = emalloc(wordlen + 1);
 			memcpy(candidate, splits[i].a, len_a);
-			if (len_b >= 1)
-				memcpy(candidate + len_a, splits[i].b + 1, 1);
-			if (len_b >= 1)
-				memcpy(candidate + len_a + 1, splits[i].b, 1);
-			if (len_b >= 2)
-				memcpy(candidate + len_a + 2, splits[i].b + 2, len_b - 2);
+			candidate[len_a] = splits[i].b[1];
+			candidate[len_a + 1] = splits[i].b[0];
+			memcpy(candidate + len_a + 2, splits[i].b + 2, len_b - 2);
 			candidate[wordlen] = 0;
 			candidates[counter++] = candidate;
 		}
@@ -129,16 +126,14 @@ edits1 (char *word)
 		/* For replaces and inserts, run a loop from 'a' to 'z' */
 		for (alphabet = 'a'; alphabet <= 'z'; alphabet++) {
 			/* Replaces */
-			if (i < wordlen) {
-				if (splits[i].b[0] != alphabet ) {
-					char *candidate = emalloc(wordlen + 1);
-					memcpy(candidate, splits[i].a, len_a);
-					candidate[len_a] = alphabet;
-					if (len_b - 1 >= 1)
-						memcpy(candidate + len_a + 1, splits[i].b + 1, len_b - 1);
-					candidate[wordlen] = 0;
-					candidates[counter++] = candidate;
-				}
+			if (i < wordlen && splits[i].b[0] != alphabet) {
+				char *candidate = emalloc(wordlen + 1);
+				memcpy(candidate, splits[i].a, len_a);
+				candidate[len_a] = alphabet;
+				if (len_b - 1 >= 1)
+					memcpy(candidate + len_a + 1, splits[i].b + 1, len_b - 1);
+				candidate[wordlen] = 0;
+				candidates[counter++] = candidate;
 			}
 
 			/* Inserts */
