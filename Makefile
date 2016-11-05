@@ -1,5 +1,3 @@
-# $NetBSD: Makefile,v 1.6 2016/07/21 12:24:54 christos Exp $
-
 .include <bsd.own.mk>
 
 PROGS=			spell
