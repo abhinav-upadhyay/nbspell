@@ -165,12 +165,17 @@ get_corrections(char **candidate_list)
 	if (candidate_list == NULL)
 		return NULL;
 	size_t i, corrections_count = 0;
-	char **corrections = emalloc (16 * sizeof(char *));
+	size_t corrections_size = 16;
+	char **corrections = emalloc (corrections_size * sizeof(char *));
 
 	while(candidate_list[i] != NULL) {
 		char *candidate = candidate_list[i++];
 		if (is_known_word(candidate))
 			corrections[corrections_count++] = strdup(candidate);
+		if (corrections_count == corrections_size - 1) {
+			corrections_size *= 2;
+			corrections = erealloc(corrections, corrections_size * sizeof(char *));
+		}
 	}
 	corrections[corrections_count] = NULL;
 	return corrections;
