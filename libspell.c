@@ -72,10 +72,10 @@ lower(char *str)
 static char **
 edits1 (char *word)
 {
-	unsigned int i;
+	size_t i;
 	size_t len_a;
 	size_t len_b;
-	unsigned int counter = 0;
+	size_t counter = 0;
 	char alphabet;
 	size_t wordlen = strlen(word);
 	set splits[wordlen + 1];
