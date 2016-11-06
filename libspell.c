@@ -37,10 +37,13 @@
 #include "dict.c"
 #include "libspell.h"
 
+/*
+ * This implementation is Based on the edit distance or Levenshtein distance technique.
+ * Explained by Peter Norvig in his post here: http://norvig.com/spell-correct.html
+ */
 
 /*
- * lower --
- *  Converts the string str to lower case
+ * Converts a word to lower case
  */
 static char *
 lower(char *str)
@@ -57,17 +60,19 @@ lower(char *str)
 
 /*
  * edits1--
- *  edits1 generates all permutations of a given word at maximum edit distance 
- *  of 1. All details are in the above article but basically it generates 4 
- *  types of possible permutations in a given word, stores them in an array and 
- *  at the end returns that array to the caller. The 4 different permutations 
+ *  edits1 generates all permutations of the characters of a
+ *  given word at maximum edit distance of 1.
+ *
+ *  All details are in the article mentioned at the top. But basically it generates 4
+ *  types of possible arrangements of the chracters of a given word, stores them in an array and
+ *  at the end returns that array to the caller. The 4 different arrangements
  *  are: (n = strlen(word) in the following description)
- *  1. Deletes: Delete one character at a time: n possible permutations
- *  2. Trasnposes: Change positions of two adjacent characters: n -1 permutations
+ *  1. Deletes: Delete one character at a time: n possible words
+ *  2. Trasnposes: Change positions of two adjacent characters: n -1 possible words
  *  3. Replaces: Replace each character by one of the 26 alphabetes in English:
- *      26 * n possible permutations
+ *      26 * n possible words
  *  4. Inserts: Insert an alphabet at each of the character positions (one at a
- *      time. 26 * (n + 1) possible permutations.
+ *      time. 26 * (n + 1) possible words.
  */
 static char **
 edits1 (char *word)
