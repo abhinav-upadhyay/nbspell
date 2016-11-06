@@ -159,10 +159,8 @@ edits1 (char *word)
 }
 
 /*
- *  Pass an array of strings to this function and it will return the word with 
- *  maximum frequency in the dictionary. If no word in the array list is found 
- *  in the dictionary, it returns NULL
- *  #TODO rename this function
+ * Takes a NULL terminated array of strings as input and returns a new array which
+ * contains only those words which exist in the dictionary.
  */
 static char **
 get_corrections(char **candidate_list)
