@@ -75,17 +75,17 @@ lower(char *str)
  *      time. 26 * (n + 1) possible words.
  */
 static char **
-edits1 (char *word)
+edits1(char *word)
 {
 	size_t i, len_a, len_b;
 	char alphabet;
 	size_t wordlen = strlen(word);
 	size_t counter = 0;
 	set splits[wordlen + 1];
-	
+
 	/* calculate number of possible permutations and allocate memory */
 	size_t size = COMBINATIONS(wordlen);
-	char **candidates = emalloc ((size + 1)  * sizeof(char *));
+	char **candidates = emalloc((size + 1) * sizeof(char *));
 
 	/* Start by generating a split up of the characters in the word */
 	for (i = 0; i < wordlen + 1; i++) {
@@ -97,9 +97,8 @@ edits1 (char *word)
 	}
 
 	/* Now generate all the permutations at maximum edit distance of 1.
-	 * counter keeps track of the current index position in the array candidates
-	 * where the next permutation needs to be stored.
-	 */
+	 * counter keeps track of the current index position in the array
+	 * candidates where the next permutation needs to be stored. */
 	for (i = 0; i < wordlen + 1; i++) {
 		len_a = strlen(splits[i].a);
 		len_b = strlen(splits[i].b);
@@ -109,12 +108,11 @@ edits1 (char *word)
 		if (i < wordlen) {
 			char *candidate = emalloc(wordlen);
 			memcpy(candidate, splits[i].a, len_a);
-			if (len_b -1 > 0)
-				memcpy(candidate + len_a , splits[i].b + 1, len_b - 1);
-			candidate[wordlen - 1] =0;
+			if (len_b - 1 > 0)
+				memcpy(candidate + len_a, splits[i].b + 1, len_b - 1);
+			candidate[wordlen - 1] = 0;
 			candidates[counter++] = candidate;
 		}
-
 		/* Transposes */
 		if (i < wordlen - 1 && len_b >= 2 && splits[i].b[0] != splits[i].b[1]) {
 			char *candidate = emalloc(wordlen + 1);
@@ -125,7 +123,6 @@ edits1 (char *word)
 			candidate[wordlen] = 0;
 			candidates[counter++] = candidate;
 		}
-
 		/* For replaces and inserts, run a loop from 'a' to 'z' */
 		for (alphabet = 'a'; alphabet <= 'z'; alphabet++) {
 			/* Replaces */
@@ -138,7 +135,6 @@ edits1 (char *word)
 				candidate[wordlen] = 0;
 				candidates[counter++] = candidate;
 			}
-
 			/* Inserts */
 			char *candidate = emalloc(wordlen + 2);
 			memcpy(candidate, splits[i].a, len_a);
@@ -151,13 +147,12 @@ edits1 (char *word)
 	}
 	candidates[counter] = NULL;
 
-    for (i = 0; i < wordlen + 1; i++) {
-        free(splits[i].a);
-        free(splits[i].b);
-    }
+	for (i = 0; i < wordlen + 1; i++) {
+		free(splits[i].a);
+		free(splits[i].b);
+	}
 	return candidates;
 }
-
 /*
  * Takes a NULL terminated array of strings as input and returns a new array which
  * contains only those words which exist in the dictionary.
@@ -169,9 +164,9 @@ get_corrections(char **candidate_list)
 		return NULL;
 	size_t i, corrections_count = 0;
 	size_t corrections_size = 16;
-	char **corrections = emalloc (corrections_size * sizeof(char *));
+	char **corrections = emalloc(corrections_size * sizeof(char *));
 
-	while(candidate_list[i] != NULL) {
+	while (candidate_list[i] != NULL) {
 		char *candidate = candidate_list[i++];
 		if (is_known_word(candidate))
 			corrections[corrections_count++] = strdup(candidate);
@@ -187,20 +182,19 @@ get_corrections(char **candidate_list)
 void
 free_list(char **list)
 {
-    size_t i = 0;
-    if (list == NULL)
-        return;
+	size_t i = 0;
+	if (list == NULL)
+		return;
 
-    while (list[i] != NULL)
-        free(list[i++]);
-    free(list);
+	while (list[i] != NULL)
+		free(list[i++]);
+	free(list);
 }
-
 /*
  * spell--
- *  The API exposed to the user. Returns the most closely matched word from the 
+ *  The API exposed to the user. Returns the most closely matched word from the
  *  dictionary. It will first search for all possible words at distance 1, if no
- *  matches are found, it goes further and tries to look for words at edit 
+ *  matches are found, it goes further and tries to look for words at edit
  *  distance 2 as well. If no matches are found at all, it returns NULL.
  */
 char **
@@ -214,7 +208,6 @@ spell(char *word)
 	free_list(candidates);
 	return corrections;
 }
-
 /*
  * Returns 1 if the word exists in the dictionary, 0 otherwise.
  * Callers should use this to decide whether they need to do
