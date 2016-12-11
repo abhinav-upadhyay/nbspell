@@ -48,11 +48,12 @@ main(int argc, char **argv)
 	if (argc < 2)
 		usage();
 
-
 	char *input_filename = argv[1];
+	//XXX: Do permission checks on the file?
 	FILE *f = fopen(input_filename, "r");
 	if (f == NULL)
 		err(EXIT_FAILURE, "fopen failed");
+
 	char *word = NULL;
 	size_t wordsize = 0;
 	ssize_t bytesread;
@@ -75,6 +76,3 @@ main(int argc, char **argv)
 	fclose(f);
 	return 0;
 }
-
-
-
