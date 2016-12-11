@@ -34,3 +34,4 @@
 spell
 dict.c
 .gdbinit
+*.core
