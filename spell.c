@@ -27,21 +27,49 @@
  * SUCH DAMAGE.
  */
 
+#include <ctype.h>
+#include <err.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "libspell.h"
+
+
+static void
+usage(void)
+{
+	(void) fprintf(stderr, "Usage: spell input_file\n");
+	exit(1);
+}
 
 int
 main(int argc, char **argv)
 {
-	char *word = argv[1];
-	char **corrections = spell(word);
-	size_t i = 0;
-	while(corrections && corrections[i] != NULL) {
-		char *correction = corrections[i++];
-		printf("%s\n", correction);
+	if (argc < 2)
+		usage();
+
+
+	char *input_filename = argv[1];
+	FILE *f = fopen(input_filename, "r");
+	if (f == NULL)
+		err(EXIT_FAILURE, "fopen failed");
+	char *word = NULL;
+	size_t wordsize = 0;
+	ssize_t bytesread;
+	while((bytesread = getdelim(&word, &wordsize, ' ', f)) != -1) {
+		word[bytesread -1] = 0;
+		if (!isalpha(word[bytesread -2]))
+			word[bytesread -2] = 0;
+
+		char **corrections = spell(word);
+		size_t i = 0;
+		while(corrections && corrections[i] != NULL) {
+			char *correction = corrections[i++];
+			printf("%s: %s\n", word, correction);
+		}
+		free_list(corrections);
 	}
-	free_list(corrections);
+	fclose(f);
 	return 0;
 }
 
