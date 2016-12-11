@@ -61,6 +61,9 @@ main(int argc, char **argv)
 		if (!isalpha(word[bytesread -2]))
 			word[bytesread -2] = 0;
 
+		if (is_known_word(word))
+			continue;
+
 		char **corrections = spell(word);
 		size_t i = 0;
 		while(corrections && corrections[i] != NULL) {
