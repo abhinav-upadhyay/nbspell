@@ -34,8 +34,9 @@
 #include <string.h>
 #include <util.h>
 
-#include "dict.c"
+#include "websters.c"
 #include "libspell.h"
+
 
 /*
  * This implementation is Based on the edit distance or Levenshtein distance technique.
