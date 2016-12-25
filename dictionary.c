@@ -112,10 +112,10 @@ parse_file(FILE *f)
 
 
 			lower(sanitized_word);
-			/*if (!is_known_word(sanitized_word)) {
+			if (!is_known_word(sanitized_word)) {
 				free(sanitized_word);
 				continue;
-			}*/
+			}
 			wc.word = sanitized_word;
 			void *node = rb_tree_find_node(&words_tree, &wc);
 			if (node == NULL) {
