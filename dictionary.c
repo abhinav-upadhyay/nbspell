@@ -9,8 +9,6 @@
 #include <sys/rbtree.h>
 #include "libspell.h"
 
-static int compare_words(void *, const void *, const void *);
-
 static char *
 parse_word(char *w, size_t len)
 {
@@ -75,17 +73,6 @@ sanitize_string(char *s)
 }
 
 static void
-lower(char *word)
-{
-	size_t i = 0;
-	char c;
-	while (word[i]) {
-		c = tolower(word[i]);
-		word[i++] = c;
-	}
-}
-
-static void
 parse_file(FILE *f)
 {
 
@@ -125,10 +112,10 @@ parse_file(FILE *f)
 
 
 			lower(sanitized_word);
-			if (!is_known_word(sanitized_word)) {
+			/*if (!is_known_word(sanitized_word)) {
 				free(sanitized_word);
 				continue;
-			}
+			}*/
 			wc.word = sanitized_word;
 			void *node = rb_tree_find_node(&words_tree, &wc);
 			if (node == NULL) {
@@ -150,21 +137,14 @@ parse_file(FILE *f)
 
 	word_count *tmp;
 	RB_TREE_FOREACH(tmp, &words_tree) {
-		fprintf(out, "%s\t%d\n", tmp->word, tmp->count);
+		if (tmp->count > 10)
+			fprintf(out, "%s\t%d\n", tmp->word, tmp->count);
 		//free(tmp->word);
 	}
 	fclose(out);
 
 }
 
-static int
-compare_words(void *context, const void *node1, const void *node2)
-{
-	const word_count *wc1 = (const word_count *) node1;
-	const word_count *wc2 = (const word_count *) node2;
-
-	return strcmp(wc1->word, wc2->word);
-}
 
 int
 main(int argc, char **argv)

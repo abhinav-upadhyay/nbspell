@@ -1,6 +1,8 @@
 #ifndef LIBSPELL_H
 #define LIBSPELL_H
 
+#include <sys/rbtree.h>
+
 /* Number of possible arrangements of a word of length ``n'' at edit distance 1 */
 #define COMBINATIONS(n) n + n - 1 + 26 * n + 26 * (n + 1)
 
@@ -10,7 +12,7 @@ typedef struct set {
 } set;
 
 typedef struct word_count {
-	char *word;
+	const char *word;
 	size_t count;
 	rb_node_t rbtree;
 } word_count;
@@ -20,11 +22,13 @@ typedef struct spell_t {
 } spell_t;
 
 char ** spell(char *);
-int is_known_word(char *);
+int is_known_word(const char *);
 void free_list(char **);
-spell_t *spell_init(FILE *);
-int spell_is_known_word(spell_t *, char *);
-char **spell_get_suggestions(spell_t *, char *, size_t);
+spell_t *spell_init(const char *);
+int spell_is_known_word(spell_t *, const char *);
+char **spell_get_suggestions(spell_t *, char *);
+int compare_words(void *, const void *, const void *);
+char *lower(char *);
 
 
 #endif
