@@ -113,14 +113,12 @@ parse_file(FILE *f, long ngram)
 			if (SIMPLEQ_EMPTY(&head))
 				SIMPLEQ_INIT(&head);
 			wordsize = strcspn(templine, ".?\'\",;-: \t");
-			templine[wordsize] = 0;
 			word = templine;
-			templine += wordsize + 1;
-			wordsize--;
 			if (word[wordsize] == '.' || word[wordsize] == '?' || word[wordsize] == ':' || word[wordsize] == '-') {
-				word[wordsize]  = 0;
 				sentence_end++;
 			}
+			word[wordsize]  = 0;
+			templine += wordsize + 1;
 
 			sanitized_word = sanitize_string(word);
 			if (!sanitized_word || !sanitized_word[0]) {
@@ -177,15 +175,17 @@ parse_file(FILE *f, long ngram)
 			if (sentence_end) {
 				entry *e;
 				while ((e = SIMPLEQ_FIRST(&head)) != NULL) {
+					SIMPLEQ_REMOVE_HEAD(&head, entries);
 					free(e->word);
 					free(e);
-					SIMPLEQ_REMOVE_HEAD(&head, entries);
 				}
 				counter = 0;
 				sentence_end = 0;
 			}
 		}
-
+		free(line);
+		line = NULL;
+		linesize = 0;
 	}
 
 	FILE *out = fopen("./out", "w");
