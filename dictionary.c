@@ -6,6 +6,7 @@
 #include <string.h>
 #include <util.h>
 
+#include <sys/queue.h>
 #include <sys/rbtree.h>
 #include "libspell.h"
 
@@ -73,7 +74,7 @@ sanitize_string(char *s)
 }
 
 static void
-parse_file(FILE *f)
+parse_file(FILE *f, long ngram)
 {
 
 	static rb_tree_t words_tree;
@@ -85,6 +86,11 @@ parse_file(FILE *f)
 	};
 	rb_tree_init(&words_tree, &tree_ops);
 
+	typedef struct entry {
+		SIMPLEQ_ENTRY(entry) entries;
+		char *word;
+	} entry;
+
 	char *word = NULL;
 	char *line = NULL;
 	size_t linesize = 0;
@@ -94,41 +100,92 @@ parse_file(FILE *f)
 	word_count wc;
 	wc.count = 0;
 	char *sanitized_word = NULL;
-
+	SIMPLEQ_HEAD(wordq, entry) head;
+	struct wordq *headp;
+	size_t counter = 0;
+	int sentence_end;
+	SIMPLEQ_INIT(&head);
 
 	while ((bytes_read = getline(&line, &linesize, f)) != -1) {
 		line[bytes_read - 1] = 0;
 		char *templine = line;
 		while (*templine) {
-			wordsize = strcspn(templine, "\'\",;-:. \t\u2014");
+			if (SIMPLEQ_EMPTY(&head))
+				SIMPLEQ_INIT(&head);
+			wordsize = strcspn(templine, ".?\'\",;-: \t");
 			templine[wordsize] = 0;
 			word = templine;
 			templine += wordsize + 1;
+			wordsize--;
+			if (word[wordsize] == '.' || word[wordsize] == '?' || word[wordsize] == ':' || word[wordsize] == '-') {
+				word[wordsize]  = 0;
+				sentence_end++;
+			}
+
 			sanitized_word = sanitize_string(word);
 			if (!sanitized_word || !sanitized_word[0]) {
 				free(sanitized_word);
 				continue;
 			}
 
-
 			lower(sanitized_word);
 			if (!is_known_word(sanitized_word)) {
 				free(sanitized_word);
 				continue;
 			}
-			wc.word = sanitized_word;
+
+			entry *e = emalloc(sizeof(*e));
+			e->word = sanitized_word;
+			counter++;
+			if (counter > ngram) {
+				entry *first = SIMPLEQ_FIRST(&head);
+				SIMPLEQ_REMOVE_HEAD(&head, entries);
+				free(first->word);
+				free(first);
+			}
+			SIMPLEQ_INSERT_TAIL(&head, e, entries);
+			if (counter < ngram)
+				continue;
+
+			struct entry *np;
+			char *ngram_string = NULL;
+			char *temp = NULL;
+			SIMPLEQ_FOREACH(np, &head, entries) {
+				if (ngram_string) {
+					easprintf(&temp, "%s %s", ngram_string, np->word);
+					free(ngram_string);
+					ngram_string = temp;
+					temp = NULL;
+				} else {
+					ngram_string = estrdup(np->word);
+				}
+			}
+
+			wc.word = ngram_string;
 			void *node = rb_tree_find_node(&words_tree, &wc);
 			if (node == NULL) {
 				wcnode = emalloc(sizeof(*wcnode));
-				wcnode->word = sanitized_word;
+				wcnode->word = ngram_string;
 				wcnode->count = 1;
 				rb_tree_insert_node(&words_tree, wcnode);
 			} else {
 				wcnode = (word_count *) node;
 				wcnode->count++;
-				free(sanitized_word);
+				free(ngram_string);
+			}
+			ngram_string = NULL;
+			if (sentence_end) {
+				entry *e;
+				while ((e = SIMPLEQ_FIRST(&head)) != NULL) {
+					free(e->word);
+					free(e);
+					SIMPLEQ_REMOVE_HEAD(&head, entries);
+				}
+				counter = 0;
+				sentence_end = 0;
 			}
 		}
+
 	}
 
 	FILE *out = fopen("./out", "w");
@@ -137,8 +194,7 @@ parse_file(FILE *f)
 
 	word_count *tmp;
 	RB_TREE_FOREACH(tmp, &words_tree) {
-		if (tmp->count > 10)
-			fprintf(out, "%s\t%d\n", tmp->word, tmp->count);
+		fprintf(out, "%s\t%d\n", tmp->word, tmp->count);
 		//free(tmp->word);
 	}
 	fclose(out);
@@ -150,10 +206,14 @@ int
 main(int argc, char **argv)
 {
 	char *path = argv[1];
+	long ngram = 1;
+	if (argc == 3) {
+		ngram = strtol(argv[2], NULL, 10);
+	}
 	FILE *f = fopen(path, "r");
 	if (f == NULL)
 		err(EXIT_FAILURE, "Failed to open %s", path);
-	parse_file(f);
+	parse_file(f, ngram);
 	fclose(f);
 	return 0;
 }
