@@ -11,31 +11,14 @@
 #include "libspell.h"
 
 static char *
-parse_word(char *w, size_t len)
-{
-	while (w && !isalpha(w[0]))
-		w++;
-
-	if (!w)
-		return NULL;
-
-	while (len && !isalpha(w[len -1]))
-		w[--len] = 0;
-
-	if (len == 0)
-		return NULL;
-
-	return w;
-}
-
-static char *
 sanitize_string(char *s)
 {
     size_t len = strlen(s);
     int i = 0;
     if (s[0] == '(' && s[len - 1] == ')') {
-        s[len - 1] = 0;
+        s[--len] = 0;
         s++;
+		--len;
     }
 
     char *ret = malloc(len + 1);
@@ -93,6 +76,9 @@ parse_file(FILE *f, long ngram)
 
 	char *word = NULL;
 	char *line = NULL;
+	char *templine;
+	char *ngram_string = NULL;
+	char *temp = NULL;
 	size_t linesize = 0;
 	size_t wordsize = 0;
 	ssize_t bytes_read;
@@ -104,50 +90,48 @@ parse_file(FILE *f, long ngram)
 	struct wordq *headp;
 	size_t counter = 0;
 	int sentence_end;
+	entry *e;
+	entry *np;
+	entry *first;
 	SIMPLEQ_INIT(&head);
 
 	while ((bytes_read = getline(&line, &linesize, f)) != -1) {
 		line[bytes_read - 1] = 0;
-		char *templine = line;
+		templine = line;
 		while (*templine) {
-			if (SIMPLEQ_EMPTY(&head))
-				SIMPLEQ_INIT(&head);
 			wordsize = strcspn(templine, ".?\'\",;-: \t");
 			word = templine;
-			if (word[wordsize] == '.' || word[wordsize] == '?' || word[wordsize] == ':' || word[wordsize] == '-') {
+			if (word[wordsize] == '.' || word[wordsize] == '?' || word[wordsize] == ':' || word[wordsize] == '-' || word[wordsize] == ';' || word[wordsize] == '\t') {
 				sentence_end++;
+				//printf("sentence end\n");
 			}
 			word[wordsize]  = 0;
 			templine += wordsize + 1;
-
 			sanitized_word = sanitize_string(word);
 			if (!sanitized_word || !sanitized_word[0]) {
 				free(sanitized_word);
-				continue;
+				goto clear_list;
 			}
 
 			lower(sanitized_word);
 			if (!is_known_word(sanitized_word)) {
 				free(sanitized_word);
-				continue;
+				goto clear_list;
 			}
 
-			entry *e = emalloc(sizeof(*e));
+			e = emalloc(sizeof(*e));
 			e->word = sanitized_word;
 			counter++;
 			if (counter > ngram) {
-				entry *first = SIMPLEQ_FIRST(&head);
+				first = SIMPLEQ_FIRST(&head);
 				SIMPLEQ_REMOVE_HEAD(&head, entries);
 				free(first->word);
 				free(first);
 			}
 			SIMPLEQ_INSERT_TAIL(&head, e, entries);
 			if (counter < ngram)
-				continue;
+				goto clear_list;
 
-			struct entry *np;
-			char *ngram_string = NULL;
-			char *temp = NULL;
 			SIMPLEQ_FOREACH(np, &head, entries) {
 				if (ngram_string) {
 					easprintf(&temp, "%s %s", ngram_string, np->word);
@@ -172,8 +156,8 @@ parse_file(FILE *f, long ngram)
 				free(ngram_string);
 			}
 			ngram_string = NULL;
+clear_list:
 			if (sentence_end) {
-				entry *e;
 				while ((e = SIMPLEQ_FIRST(&head)) != NULL) {
 					SIMPLEQ_REMOVE_HEAD(&head, entries);
 					free(e->word);
@@ -195,10 +179,10 @@ parse_file(FILE *f, long ngram)
 	word_count *tmp;
 	RB_TREE_FOREACH(tmp, &words_tree) {
 		fprintf(out, "%s\t%d\n", tmp->word, tmp->count);
-		//free(tmp->word);
+		free(tmp->word);
+		free(tmp);
 	}
 	fclose(out);
-
 }
 
 
