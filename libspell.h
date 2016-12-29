@@ -12,7 +12,7 @@ typedef struct set {
 } set;
 
 typedef struct word_count {
-	const char *word;
+	char *word;
 	size_t count;
 	rb_node_t rbtree;
 } word_count;
