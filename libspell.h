@@ -1,6 +1,8 @@
 #ifndef LIBSPELL_H
 #define LIBSPELL_H
 
+#include <sys/rbtree.h>
+
 /* Number of possible arrangements of a word of length ``n'' at edit distance 1 */
 #define COMBINATIONS(n) n + n - 1 + 26 * n + 26 * (n + 1)
 
