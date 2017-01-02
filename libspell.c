@@ -326,7 +326,7 @@ int
 spell_is_known_word(spell_t *spell, const char *word)
 {
 	word_count wc;
-	wc.word = word;
+	wc.word = (char *) word;
 	word_count *node = rb_tree_find_node(spell->dictionary, &wc);
 	return node != NULL;
 }
