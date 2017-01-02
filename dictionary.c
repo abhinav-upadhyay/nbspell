@@ -13,56 +13,53 @@
 static char *
 sanitize_string(char *s)
 {
-    size_t len = strlen(s);
-    int i = 0;
-    if (s[0] == '(' && s[len - 1] == ')') {
-        s[--len] = 0;
-        s++;
+	size_t len = strlen(s);
+	int i = 0;
+	if (s[0] == '(' && s[len - 1] == ')') {
+		s[--len] = 0;
+		s++;
 		--len;
-    }
-
-    char *ret = malloc(len + 1);
-    memset(ret, 0, len + 1);
-    while(*s) {
-        /*
-         * Detect apostrophe and stop copying characters immediately
-         */
-        if ((*s == '\'') && (
-                 !strncmp(s + 1, "s", 1) ||
-                 !strncmp(s + 1, "es", 2) ||
-                 !strncmp(s + 1, "m", 1) ||
-                 !strncmp(s + 1, "d", 1) ||
-                 !strncmp(s + 1, "ll", 2))) {
-            break;
-        }
-
-        /*
-         * If the word contains a dot in between that suggests it is either
-         * an abbreviation or somekind of a URL. Do not bother with such words.
-         */
-        if (*s == '.') {
-            free(ret);
-            return NULL;
-        }
-
-        // Why bother with words which contain other characters or numerics?
-        if (!isalpha(*s)) {
-            free(ret);
-            return NULL;
-        }
-        ret[i++] = *s++;
-    }
-    ret[i] = 0;
-    return ret;
+	}
+	char *ret = malloc(len + 1);
+	memset(ret, 0, len + 1);
+	while (*s) {
+		/*
+		 * Detect apostrophe and stop copying characters immediately
+		 */
+		if ((*s == '\'') && (
+			!strncmp(s + 1, "s", 1) ||
+			!strncmp(s + 1, "es", 2) ||
+			!strncmp(s + 1, "m", 1) ||
+			!strncmp(s + 1, "d", 1) ||
+			!strncmp(s + 1, "ll", 2))) {
+			break;
+		}
+		/*
+		 * If the word contains a dot in between that suggests it is either
+		 * an abbreviation or somekind of a URL. Do not bother with such words.
+		 */
+		if (*s == '.') {
+			free(ret);
+			return NULL;
+		}
+		//Why bother with words which contain other characters or numerics ?
+		    if (!isalpha(*s)) {
+			free(ret);
+			return NULL;
+		}
+		ret[i++] = *s++;
+	}
+	ret[i] = 0;
+	return ret;
 }
 
 static void
-parse_file(FILE *f, long ngram)
+parse_file(FILE * f, long ngram)
 {
 
 	rb_tree_t words_tree;
 	const rb_tree_ops_t tree_ops = {
-		.rbto_compare_nodes =  compare_words,
+		.rbto_compare_nodes = compare_words,
 		.rbto_compare_key = compare_words,
 		.rbto_node_offset = offsetof(word_count, rbtree),
 		.rbto_context = NULL
@@ -72,7 +69,7 @@ parse_file(FILE *f, long ngram)
 	typedef struct entry {
 		SIMPLEQ_ENTRY(entry) entries;
 		char *word;
-	} entry;
+	}     entry;
 
 	char *word = NULL;
 	char *line = NULL;
@@ -103,24 +100,26 @@ parse_file(FILE *f, long ngram)
 		while (*templine) {
 			wordsize = strcspn(templine, ".?\'\",;-: \t");
 			word = templine;
-			if (word[wordsize] == '.' || word[wordsize] == '?' || word[wordsize] == ':' || word[wordsize] == '-' || word[wordsize] == ';' || word[wordsize] == '\t') {
+			if (word[wordsize] == '.' ||
+			    word[wordsize] == '?' ||
+			    word[wordsize] == ':' ||
+			    word[wordsize] == '-' ||
+			    word[wordsize] == ';' ||
+			    word[wordsize] == '\t'
+			    )
 				sentence_end++;
-				//printf("sentence end\n");
-			}
-			word[wordsize]  = 0;
+			word[wordsize] = 0;
 			templine += wordsize + 1;
 			sanitized_word = sanitize_string(word);
 			if (!sanitized_word || !sanitized_word[0]) {
 				free(sanitized_word);
 				goto clear_list;
 			}
-
 			lower(sanitized_word);
 			if (!is_known_word(sanitized_word)) {
 				free(sanitized_word);
 				goto clear_list;
 			}
-
 			e = emalloc(sizeof(*e));
 			e->word = sanitized_word;
 			counter++;
@@ -158,7 +157,8 @@ parse_file(FILE *f, long ngram)
 				free(ngram_string);
 			}
 			ngram_string = NULL;
-clear_list:
+
+	clear_list:
 			if (sentence_end) {
 				while ((e = SIMPLEQ_FIRST(&head)) != NULL) {
 					SIMPLEQ_REMOVE_HEAD(&head, entries);
@@ -180,7 +180,7 @@ clear_list:
 
 	word_count *tmp;
 	RB_TREE_FOREACH(tmp, &words_tree)
-		fprintf(out, "%s\t%d\n", tmp->word, tmp->count);
+	    fprintf(out, "%s\t%d\n", tmp->word, tmp->count);
 	fclose(out);
 }
 
