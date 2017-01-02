@@ -29,6 +29,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -46,7 +47,7 @@
 /*
  * Converts a word to lower case
  */
-static char *
+char *
 lower(char *str)
 {
 	int i = 0;
@@ -180,6 +181,52 @@ get_corrections(char **candidate_list)
 	return corrections;
 }
 
+static int
+max_count(const void *node1, const void *node2)
+{
+	word_count *wc1 = (word_count *) node1;
+	word_count *wc2 = (word_count *) node2;
+	if (wc1->count == wc2->count)
+		return 0;
+
+	return wc1->count > wc2->count? -1: 1;
+}
+
+static char **
+spell_get_corrections(spell_t *spell, char **candidate_list, size_t n)
+{
+	if (candidate_list == NULL)
+		return NULL;
+	size_t i, corrections_count = 0;
+	size_t corrections_size = 16;
+	char **corrections = emalloc((n + 1) * sizeof(char *));
+	word_count *wc_array = emalloc(corrections_size * sizeof(*wc_array));
+
+	while (candidate_list[i]) {
+		char *candidate = candidate_list[i++];
+		word_count node;
+		word_count *tree_node;
+		node.word = candidate;
+		tree_node = rb_tree_find_node(spell->dictionary, &node);
+		if (tree_node)
+			wc_array[corrections_count++] = *tree_node;
+		else
+			continue;
+		if (corrections_count == corrections_size - 1) {
+			corrections_size *= 2;
+			wc_array = erealloc(wc_array, corrections_size * sizeof(*wc_array));
+		}
+	}
+	corrections[corrections_count] = NULL;
+	qsort(wc_array, corrections_count, sizeof(*wc_array), max_count);
+	for (i = 0; i < n; i++) {
+		corrections[i] = (char *) wc_array[i].word;
+	}
+	//XXX: Handle the case when n < corrections_count
+	corrections[n] = NULL;
+	return corrections;
+}
+
 void
 free_list(char **list)
 {
@@ -215,9 +262,92 @@ spell(char *word)
  * spell check for the word or not.
  */
 int
-is_known_word(char *word)
+is_known_word(const char *word)
 {
 	size_t len = strlen(word);
 	unsigned int idx = dict_hash(word, len);
 	return memcmp(dict[idx], word, len) == 0 && dict[idx][len] == '\0';
+}
+
+
+spell_t *
+spell_init(const char *dictionary_path)
+{
+	FILE *f = fopen(dictionary_path, "r");
+	if (f == NULL)
+		return NULL;
+
+	spell_t *spellt;
+	static rb_tree_t *words_tree;
+	static const rb_tree_ops_t tree_ops = {
+		.rbto_compare_nodes =  compare_words,
+		.rbto_compare_key = compare_words,
+		.rbto_node_offset = offsetof(word_count, rbtree),
+		.rbto_context = NULL
+	};
+
+	words_tree = emalloc(sizeof(*words_tree));
+	rb_tree_init(words_tree, &tree_ops);
+	spellt = emalloc(sizeof(*spellt));
+	spellt->dictionary = words_tree;
+
+	char *word = NULL;
+	char *line = NULL;
+	size_t linesize = 0;
+	size_t wordsize = 0;
+	ssize_t bytes_read;
+	word_count *wcnode;
+	word_count wc;
+	wc.count = 0;
+	char *sanitized_word = NULL;
+	while ((bytes_read = getline(&line, &linesize, f)) != -1) {
+		line[bytes_read - 1] = 0;
+		char *templine = line;
+		char *tabindex = strchr(templine, '\t');
+		if (tabindex == NULL) {
+			free(words_tree);
+			free(spellt);
+			fclose(f);
+			return NULL;
+		}
+		tabindex[0] = 0;
+		word = estrdup(templine);
+		templine = tabindex + 1;
+		wcnode = emalloc(sizeof(*wcnode));
+		wcnode->word = estrdup(word);
+		wcnode->count = strtol(templine, NULL, 10);
+		rb_tree_insert_node(words_tree, wcnode);
+	}
+	fclose(f);
+	return spellt;
+}
+
+int
+spell_is_known_word(spell_t *spell, const char *word)
+{
+	word_count wc;
+	wc.word = (char *) word;
+	word_count *node = rb_tree_find_node(spell->dictionary, &wc);
+	return node != NULL;
+}
+
+char **
+spell_get_suggestions(spell_t *spell, char *word)
+{
+	char **corrections = NULL;
+	char **candidates;
+	lower(word);
+	candidates = edits1(word);
+	corrections = spell_get_corrections(spell, candidates, 1);
+	free_list(candidates);
+	return corrections;
+}
+
+int
+compare_words(void *context, const void *node1, const void *node2)
+{
+	const word_count *wc1 = (const word_count *) node1;
+	const word_count *wc2 = (const word_count *) node2;
+
+	return strcmp(wc1->word, wc2->word);
 }
