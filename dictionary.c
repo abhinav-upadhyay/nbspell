@@ -60,8 +60,8 @@ static void
 parse_file(FILE *f, long ngram)
 {
 
-	static rb_tree_t words_tree;
-	static const rb_tree_ops_t tree_ops = {
+	rb_tree_t words_tree;
+	const rb_tree_ops_t tree_ops = {
 		.rbto_compare_nodes =  compare_words,
 		.rbto_compare_key = compare_words,
 		.rbto_node_offset = offsetof(word_count, rbtree),
@@ -89,15 +89,17 @@ parse_file(FILE *f, long ngram)
 	SIMPLEQ_HEAD(wordq, entry) head;
 	struct wordq *headp;
 	size_t counter = 0;
-	int sentence_end;
+	int sentence_end = 0;
 	entry *e;
 	entry *np;
 	entry *first;
 	SIMPLEQ_INIT(&head);
 
 	while ((bytes_read = getline(&line, &linesize, f)) != -1) {
-		line[bytes_read - 1] = 0;
 		templine = line;
+		templine[bytes_read--] = 0;
+		if (templine[bytes_read] == '\r')
+			templine[bytes_read] = 0;
 		while (*templine) {
 			wordsize = strcspn(templine, ".?\'\",;-: \t");
 			word = templine;
@@ -177,11 +179,8 @@ clear_list:
 		err(EXIT_FAILURE, "Failed to open dictionary.out");
 
 	word_count *tmp;
-	RB_TREE_FOREACH(tmp, &words_tree) {
+	RB_TREE_FOREACH(tmp, &words_tree)
 		fprintf(out, "%s\t%d\n", tmp->word, tmp->count);
-		free(tmp->word);
-		free(tmp);
-	}
 	fclose(out);
 }
 
