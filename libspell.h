@@ -19,14 +19,15 @@ typedef struct word_count {
 
 typedef struct spell_t {
 	rb_tree_t *dictionary;
+	rb_tree_t *ngrams_tree;
 } spell_t;
 
 char ** spell(char *);
 int is_known_word(const char *);
 void free_list(char **);
 spell_t *spell_init(const char *);
-int spell_is_known_word(spell_t *, const char *);
-char **spell_get_suggestions(spell_t *, char *);
+int spell_is_known_word(spell_t *, const char *, int);
+char **spell_get_suggestions(spell_t *, char *, int);
 int compare_words(void *, const void *, const void *);
 char *lower(char *);
 

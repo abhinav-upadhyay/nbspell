@@ -91,8 +91,11 @@ parse_file(FILE * f, long ngram)
 	entry *np;
 	entry *first;
 	SIMPLEQ_INIT(&head);
+	size_t linecount = 0;
 
 	while ((bytes_read = getline(&line, &linesize, f)) != -1) {
+		if (++linecount >= 400000)
+			break;
 		templine = line;
 		templine[bytes_read--] = 0;
 		if (templine[bytes_read] == '\r')
@@ -190,7 +193,7 @@ main(int argc, char **argv)
 {
 	char *path = argv[1];
 	long ngram = 1;
-	if (argc == 3) {
+	if (argc >= 2) {
 		ngram = strtol(argv[2], NULL, 10);
 	}
 	FILE *f = fopen(path, "r");
