@@ -91,6 +91,10 @@ do_bigram(const char *input_filename)
 			prevword = word;
 			word = templine;
 			templine += wordsize + 1;
+			if (strlen(word) <= 1)
+				continue;
+			while (*templine == ' ')
+				templine++;
 			/*			sanitized_word = sanitize_string(word);
 						if (!sanitized_word || !sanitized_word[0]) {
 						free(sanitized_word);
