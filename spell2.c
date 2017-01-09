@@ -66,6 +66,7 @@ do_bigram(const char *input_filename)
 	char *prevword = NULL;
 	int sentence_end = 0;
 	char *bigram_word = NULL;
+	char *correction = NULL;
 	size_t i;
 
 	while ((bytes_read = getline(&line, &linesize, f)) != -1) {
@@ -105,21 +106,32 @@ do_bigram(const char *input_filename)
 			if (is_known_word(word))
 				continue;
 
+			if (correction != NULL) {
+				free(correction);
+				correction = NULL;
+			}
+
 			if (prevword == NULL) {
 				char **s = spell_get_suggestions(spellt, word, 1);
-				if (s != NULL)
-					prevword = s[0];
+				if (s != NULL && s[0] != NULL)
+					correction = estrdup(s[0]);
 				free_list(s);
-				if (prevword != NULL)
-					printf("%s: %s\n", word, prevword);
+				if (correction != NULL)
+					printf("%s: %s\n", word, correction);
+				word = correction;
 				continue;
 			}
 
 			char **suggestions = spell( word);
 			for (i = 0; suggestions && suggestions[i]; i++) {
 				easprintf(&bigram_word, "%s %s", prevword, suggestions[i]);
-				if (spell_is_known_word(spellt, bigram_word, 2))
+				if (spell_is_known_word(spellt, bigram_word, 2)) {
 					printf("%s %s: %s\n", prevword, word, bigram_word);
+					correction = estrdup(suggestions[i]);
+					word = correction;
+					free(bigram_word);
+					break;
+				}
 				free(bigram_word);
 				bigram_word = NULL;
 			}
