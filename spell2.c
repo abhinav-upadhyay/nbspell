@@ -77,13 +77,15 @@ do_bigram(const char *input_filename)
 				sentence_end = 0;
 				prevword = NULL;
 			}
-			wordsize = strcspn(templine, "?\'\",;-:. \t");
+			wordsize = strcspn(templine, "()?\'\",;-:. \t");
 			switch (templine[wordsize]) {
 				case '?':
 				case '.':
 				case ';':
 				case '-':
 				case '\t':
+				case '(':
+				case ')':
 					sentence_end = 1;
 					break;
 			}
