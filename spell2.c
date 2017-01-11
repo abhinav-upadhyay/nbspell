@@ -179,15 +179,20 @@ do_unigram(const char *input_filename)
 		line[bytes_read - 1] = 0;
 		char *templine = line;
 		while (*templine) {
-			wordsize = strcspn(templine, "?\'\",;-:. \t\u2014");
+			wordsize = strcspn(templine, "?\'\",;-:. \t");
 			templine[wordsize] = 0;
 			word = templine;
 			templine += wordsize + 1;
+			if (strlen(word) <= 1)
+				continue;
+			while (*templine == ' ')
+				templine++;
 			/*			sanitized_word = sanitize_string(word);
 						if (!sanitized_word || !sanitized_word[0]) {
 						free(sanitized_word);
 						continue;
 						}*/
+
 			lower(word);
 			if (spell_is_known_word(spell, word, 1))
 				continue;
