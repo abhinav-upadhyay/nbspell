@@ -77,7 +77,7 @@ do_bigram(const char *input_filename)
 				sentence_end = 0;
 				prevword = NULL;
 			}
-			wordsize = strcspn(templine, "()?\'\",;-:. \t");
+			wordsize = strcspn(templine, "()<>@?\'\",;-:. \t");
 			switch (templine[wordsize]) {
 				case '?':
 				case '.':
@@ -179,7 +179,7 @@ do_unigram(const char *input_filename)
 		line[bytes_read - 1] = 0;
 		char *templine = line;
 		while (*templine) {
-			wordsize = strcspn(templine, "?\'\",;-:. \t");
+			wordsize = strcspn(templine, "()<>@?\'\",;-:. \t");
 			templine[wordsize] = 0;
 			word = templine;
 			templine += wordsize + 1;
