@@ -199,7 +199,6 @@ spell_get_corrections(spell_t *spell, char **candidate_list, size_t n, int ngram
 		return NULL;
 	size_t i, corrections_count = 0;
 	size_t corrections_size = 16;
-	char **corrections = emalloc((n + 1) * sizeof(char *));
 	word_count *wc_array = emalloc(corrections_size * sizeof(*wc_array));
 
 	while (candidate_list[i]) {
@@ -220,6 +219,13 @@ spell_get_corrections(spell_t *spell, char **candidate_list, size_t n, int ngram
 			wc_array = erealloc(wc_array, corrections_size * sizeof(*wc_array));
 		}
 	}
+
+	if (corrections_count == 0) {
+		free(wc_array);
+		return NULL;
+	}
+
+	char **corrections = emalloc((n + 1) * sizeof(char *));
 	corrections[corrections_count] = NULL;
 	qsort(wc_array, corrections_count, sizeof(*wc_array), max_count);
 	for (i = 0; i < n; i++) {
@@ -227,7 +233,8 @@ spell_get_corrections(spell_t *spell, char **candidate_list, size_t n, int ngram
 			corrections[i] =  estrdup(wc_array[i].word);
 	}
 	//XXX: Handle the case when n < corrections_count
-	corrections[n] = NULL;
+	if (n < corrections_count)
+		corrections[n] = NULL;
 	return corrections;
 }
 
@@ -363,7 +370,7 @@ spell_is_known_word(spell_t *spell, const char *word, int ngram)
 		node = rb_tree_find_node(spell->dictionary, &wc);
 	else if (ngram == 2)
 		node = rb_tree_find_node(spell->ngrams_tree, &wc);
-	return node != NULL;
+	return node != NULL? node->count: 0;
 }
 
 char **
