@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <util.h>
 
 #include "libspell.h"
@@ -45,12 +46,8 @@ usage(void)
 }
 
 static void
-do_bigram(const char *input_filename)
+do_bigram(FILE *f)
 {
-	//XXX: Do permission checks on the file?
-	FILE *f = fopen(input_filename, "r");
-	if (f == NULL)
-		err(EXIT_FAILURE, "fopen failed");
 
 	char *word = NULL;
 	size_t wordsize = 0;
@@ -149,18 +146,12 @@ do_bigram(const char *input_filename)
 
 		}
 	}
-
-	fclose(f);
 }
 
 
 static void
-do_unigram(const char *input_filename)
+do_unigram(FILE *f)
 {
-	//XXX: Do permission checks on the file?
-	FILE *f = fopen(input_filename, "r");
-	if (f == NULL)
-		err(EXIT_FAILURE, "fopen failed");
 
 	char *word = NULL;
 	size_t wordsize = 0;
@@ -206,24 +197,33 @@ do_unigram(const char *input_filename)
 			free_list(corrections);
 		}
 	}
-
-
-	fclose(f);
 }
 
 int
 main(int argc, char **argv)
 {
-	if (argc < 2)
-		usage();
-
 	long ngram = 1;
-	char *input_filename = argv[1];
-	if (argc > 2)
-		ngram = strtol(argv[2], NULL, 10);
+	FILE *input = stdin;
+	int ch;
+
+	while ((ch = getopt(argc, argv, "f:n:")) != -1) {
+		switch (ch) {
+		case 'f':
+			input = fopen(optarg, "r");
+			if (input == NULL)
+				err(EXIT_FAILURE, "Failed to open %s", optarg);
+			break;
+		case 'n':
+			ngram = strtol(optarg, NULL, 10);
+			break;
+		default:
+			break;
+		}
+	}
+
 	if (ngram == 1)
-		do_unigram(input_filename);
+		do_unigram(input);
 	if (ngram == 2)
-		do_bigram(input_filename);
+		do_bigram(input);
 	return 0;
 }
