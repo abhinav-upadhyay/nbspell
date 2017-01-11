@@ -32,6 +32,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <util.h>
 
 #include "libspell.h"
 
@@ -43,22 +45,118 @@ usage(void)
 	exit(1);
 }
 
-int
-main(int argc, char **argv)
+static void
+do_bigram(FILE *f)
 {
-	if (argc < 2)
-		usage();
-
-	char *input_filename = argv[1];
-	//XXX: Do permission checks on the file?
-	FILE *f = fopen(input_filename, "r");
-	if (f == NULL)
-		err(EXIT_FAILURE, "fopen failed");
 
 	char *word = NULL;
 	size_t wordsize = 0;
 	ssize_t bytesread;
-	spell_t *spell = spell_init("./out");
+	spell_t *spellt = spell_init("dict/bigram.txt");
+	char *line = NULL;
+	size_t linesize = 0;
+	ssize_t bytes_read;
+	word_count *wcnode;
+	word_count wc;
+	wc.count = 0;
+	char *sanitized_word = NULL;
+	char *prevword = NULL;
+	int sentence_end = 0;
+	char *bigram_word = NULL;
+	char *correction = NULL;
+	size_t i;
+
+	while ((bytes_read = getline(&line, &linesize, f)) != -1) {
+		line[bytes_read - 1] = 0;
+		char *templine = line;
+		while (*templine) {
+			if (sentence_end) {
+				sentence_end = 0;
+				prevword = NULL;
+			}
+			wordsize = strcspn(templine, "()<>@?\'\",;-:. \t");
+			switch (templine[wordsize]) {
+				case '?':
+				case '.':
+				case ';':
+				case '-':
+				case '\t':
+				case '(':
+				case ')':
+					sentence_end = 1;
+					break;
+			}
+
+			templine[wordsize] = 0;
+			prevword = word;
+			word = templine;
+			templine += wordsize + 1;
+			if (strlen(word) <= 1)
+				continue;
+			while (*templine == ' ')
+				templine++;
+			/*			sanitized_word = sanitize_string(word);
+						if (!sanitized_word || !sanitized_word[0]) {
+						free(sanitized_word);
+						continue;
+						}*/
+			lower(word);
+
+			if (is_known_word(word))
+				continue;
+
+			if (correction != NULL) {
+				free(correction);
+				correction = NULL;
+			}
+
+			if (prevword == NULL) {
+				char **s = spell_get_suggestions(spellt, word, 1);
+				if (s != NULL && s[0] != NULL)
+					correction = estrdup(s[0]);
+				free_list(s);
+				if (correction != NULL)
+					printf("%s: %s\n", word, correction);
+				word = correction;
+				continue;
+			}
+
+			char **suggestions = spell( word);
+			int max_index = -1;
+			size_t max_frequency = 0;
+			for (i = 0; suggestions && suggestions[i]; i++) {
+				easprintf(&bigram_word, "%s %s", prevword, suggestions[i]);
+				int suggestion_frequency = spell_is_known_word(spellt, bigram_word, 2);
+				if (suggestion_frequency > max_frequency) {
+					max_frequency = suggestion_frequency;
+					max_index = i;
+				}
+				free(bigram_word);
+				bigram_word = NULL;
+			}
+			if (max_index == -1) {
+				char **suggestions2 = spell_get_suggestions(spellt, word, 1);
+				if (suggestions2 && suggestions2[0])
+					printf("%s %s: %s\n", prevword, word, suggestions2[0]);
+				free(suggestions2);
+			} else
+				printf("%s %s: %s\n", prevword, word, suggestions[max_index]);
+
+			free_list(suggestions);
+
+		}
+	}
+}
+
+
+static void
+do_unigram(FILE *f)
+{
+
+	char *word = NULL;
+	size_t wordsize = 0;
+	ssize_t bytesread;
+	spell_t *spell = spell_init("dict/unigram.txt");
 	char *line = NULL;
 	size_t linesize = 0;
 	ssize_t bytes_read;
@@ -72,20 +170,25 @@ main(int argc, char **argv)
 		line[bytes_read - 1] = 0;
 		char *templine = line;
 		while (*templine) {
-			wordsize = strcspn(templine, "?\'\",;-:. \t\u2014");
+			wordsize = strcspn(templine, "()<>@?\'\",;-:. \t");
 			templine[wordsize] = 0;
 			word = templine;
 			templine += wordsize + 1;
+			if (strlen(word) <= 1)
+				continue;
+			while (*templine == ' ')
+				templine++;
 			/*			sanitized_word = sanitize_string(word);
 						if (!sanitized_word || !sanitized_word[0]) {
 						free(sanitized_word);
 						continue;
 						}*/
+
 			lower(word);
-			if (spell_is_known_word(spell, word))
+			if (spell_is_known_word(spell, word, 1))
 				continue;
 
-			char **corrections = spell_get_suggestions(spell, word);
+			char **corrections = spell_get_suggestions(spell, word, 1);
 			size_t i = 0;
 			while(corrections && corrections[i] != NULL) {
 				char *correction = corrections[i++];
@@ -94,8 +197,33 @@ main(int argc, char **argv)
 			free_list(corrections);
 		}
 	}
+}
 
+int
+main(int argc, char **argv)
+{
+	long ngram = 1;
+	FILE *input = stdin;
+	int ch;
 
-	fclose(f);
+	while ((ch = getopt(argc, argv, "f:n:")) != -1) {
+		switch (ch) {
+		case 'f':
+			input = fopen(optarg, "r");
+			if (input == NULL)
+				err(EXIT_FAILURE, "Failed to open %s", optarg);
+			break;
+		case 'n':
+			ngram = strtol(optarg, NULL, 10);
+			break;
+		default:
+			break;
+		}
+	}
+
+	if (ngram == 1)
+		do_unigram(input);
+	if (ngram == 2)
+		do_bigram(input);
 	return 0;
 }

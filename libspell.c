@@ -193,13 +193,12 @@ max_count(const void *node1, const void *node2)
 }
 
 static char **
-spell_get_corrections(spell_t *spell, char **candidate_list, size_t n)
+spell_get_corrections(spell_t *spell, char **candidate_list, size_t n, int ngram)
 {
 	if (candidate_list == NULL)
 		return NULL;
-	size_t i, corrections_count = 0;
+	size_t i = 0, corrections_count = 0;
 	size_t corrections_size = 16;
-	char **corrections = emalloc((n + 1) * sizeof(char *));
 	word_count *wc_array = emalloc(corrections_size * sizeof(*wc_array));
 
 	while (candidate_list[i]) {
@@ -207,7 +206,10 @@ spell_get_corrections(spell_t *spell, char **candidate_list, size_t n)
 		word_count node;
 		word_count *tree_node;
 		node.word = candidate;
-		tree_node = rb_tree_find_node(spell->dictionary, &node);
+		if (ngram == 1)
+			tree_node = rb_tree_find_node(spell->dictionary, &node);
+		else if (ngram == 2)
+			tree_node = rb_tree_find_node(spell->ngrams_tree, &node);
 		if (tree_node)
 			wc_array[corrections_count++] = *tree_node;
 		else
@@ -217,13 +219,22 @@ spell_get_corrections(spell_t *spell, char **candidate_list, size_t n)
 			wc_array = erealloc(wc_array, corrections_size * sizeof(*wc_array));
 		}
 	}
+
+	if (corrections_count == 0) {
+		free(wc_array);
+		return NULL;
+	}
+
+	char **corrections = emalloc((n + 1) * sizeof(char *));
 	corrections[corrections_count] = NULL;
 	qsort(wc_array, corrections_count, sizeof(*wc_array), max_count);
 	for (i = 0; i < n; i++) {
-		corrections[i] = (char *) wc_array[i].word;
+		if (wc_array[i].word)
+			corrections[i] =  estrdup(wc_array[i].word);
 	}
 	//XXX: Handle the case when n < corrections_count
-	corrections[n] = NULL;
+	if (n < corrections_count)
+		corrections[n] = NULL;
 	return corrections;
 }
 
@@ -279,6 +290,7 @@ spell_init(const char *dictionary_path)
 
 	spell_t *spellt;
 	static rb_tree_t *words_tree;
+	static rb_tree_t *ngrams_tree;
 	static const rb_tree_ops_t tree_ops = {
 		.rbto_compare_nodes =  compare_words,
 		.rbto_compare_key = compare_words,
@@ -287,9 +299,12 @@ spell_init(const char *dictionary_path)
 	};
 
 	words_tree = emalloc(sizeof(*words_tree));
+	ngrams_tree = emalloc(sizeof(*ngrams_tree));
 	rb_tree_init(words_tree, &tree_ops);
+	rb_tree_init(ngrams_tree, &tree_ops);
 	spellt = emalloc(sizeof(*spellt));
 	spellt->dictionary = words_tree;
+	spellt->ngrams_tree = ngrams_tree;
 
 	char *word = NULL;
 	char *line = NULL;
@@ -319,26 +334,53 @@ spell_init(const char *dictionary_path)
 		rb_tree_insert_node(words_tree, wcnode);
 	}
 	fclose(f);
+	if ((f = fopen("dict/bigram.txt", "r")) == NULL)
+		return spellt;
+
+
+	while ((bytes_read = getline(&line, &linesize, f)) != -1) {
+		line[bytes_read - 1] = 0;
+		char *templine = line;
+		char *tabindex = strchr(templine, '\t');
+		if (tabindex == NULL) {
+			free(words_tree);
+			free(spellt);
+			fclose(f);
+			return spellt;
+		}
+		tabindex[0] = 0;
+		word = estrdup(templine);
+		templine = tabindex + 1;
+		wcnode = emalloc(sizeof(*wcnode));
+		wcnode->word = estrdup(word);
+		wcnode->count = strtol(templine, NULL, 10);
+		rb_tree_insert_node(ngrams_tree, wcnode);
+	}
+	fclose(f);
 	return spellt;
 }
 
 int
-spell_is_known_word(spell_t *spell, const char *word)
+spell_is_known_word(spell_t *spell, const char *word, int ngram)
 {
 	word_count wc;
 	wc.word = (char *) word;
-	word_count *node = rb_tree_find_node(spell->dictionary, &wc);
-	return node != NULL;
+	word_count *node;
+	if (ngram == 1)
+		node = rb_tree_find_node(spell->dictionary, &wc);
+	else if (ngram == 2)
+		node = rb_tree_find_node(spell->ngrams_tree, &wc);
+	return node != NULL? node->count: 0;
 }
 
 char **
-spell_get_suggestions(spell_t *spell, char *word)
+spell_get_suggestions(spell_t *spell, char *word, int ngram)
 {
 	char **corrections = NULL;
 	char **candidates;
 	lower(word);
 	candidates = edits1(word);
-	corrections = spell_get_corrections(spell, candidates, 1);
+	corrections = spell_get_corrections(spell, candidates, 1, ngram);
 	free_list(candidates);
 	return corrections;
 }
