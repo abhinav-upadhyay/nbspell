@@ -282,7 +282,7 @@ is_known_word(const char *word)
 
 
 spell_t *
-spell_init(const char *dictionary_path)
+spell_init(const char *dictionary_path, const char *whitelist_filepath)
 {
 	FILE *f = fopen(dictionary_path, "r");
 	if (f == NULL)
@@ -305,6 +305,7 @@ spell_init(const char *dictionary_path)
 	spellt = emalloc(sizeof(*spellt));
 	spellt->dictionary = words_tree;
 	spellt->ngrams_tree = ngrams_tree;
+	spellt->whitelist = NULL;
 
 	char *word = NULL;
 	char *line = NULL;
@@ -323,6 +324,7 @@ spell_init(const char *dictionary_path)
 			free(words_tree);
 			free(spellt);
 			fclose(f);
+			free(line);
 			return NULL;
 		}
 		tabindex[0] = 0;
@@ -334,6 +336,7 @@ spell_init(const char *dictionary_path)
 		rb_tree_insert_node(words_tree, wcnode);
 	}
 	fclose(f);
+
 	if ((f = fopen("dict/bigram.txt", "r")) == NULL)
 		return spellt;
 
@@ -346,6 +349,7 @@ spell_init(const char *dictionary_path)
 			free(words_tree);
 			free(spellt);
 			fclose(f);
+			free(line);
 			return spellt;
 		}
 		tabindex[0] = 0;
@@ -355,6 +359,24 @@ spell_init(const char *dictionary_path)
 		wcnode->word = estrdup(word);
 		wcnode->count = strtol(templine, NULL, 10);
 		rb_tree_insert_node(ngrams_tree, wcnode);
+	}
+	fclose(f);
+
+	if (whitelist_filepath == NULL || (f = fopen(whitelist_filepath, "r")) == NULL)
+		return spellt;
+
+	static rb_tree_t *whitelist;
+	whitelist = emalloc(sizeof(*whitelist));
+	rb_tree_init(whitelist, &tree_ops);
+	spellt->whitelist = whitelist;
+
+	while ((bytes_read = getline(&line, &linesize, f)) != -1) {
+		line[bytes_read - 1] = 0;
+		word = estrdup(line);
+		wcnode = emalloc(sizeof(*wcnode));
+		wcnode->word = word;
+		wcnode->count = 0;
+		rb_tree_insert_node(whitelist, wcnode);
 	}
 	fclose(f);
 	return spellt;
@@ -392,4 +414,16 @@ compare_words(void *context, const void *node1, const void *node2)
 	const word_count *wc2 = (const word_count *) node2;
 
 	return strcmp(wc1->word, wc2->word);
+}
+
+int
+is_whitelisted_word(spell_t *spell, const char *word)
+{
+	if (spell->whitelist == NULL)
+		return 1;
+
+	word_count wc;
+	wc.word = (char *) word;
+	word_count *node = rb_tree_find_node(spell->whitelist, &wc);
+	return node != NULL;
 }
