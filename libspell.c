@@ -197,7 +197,7 @@ spell_get_corrections(spell_t *spell, char **candidate_list, size_t n, int ngram
 {
 	if (candidate_list == NULL)
 		return NULL;
-	size_t i, corrections_count = 0;
+	size_t i = 0, corrections_count = 0;
 	size_t corrections_size = 16;
 	word_count *wc_array = emalloc(corrections_size * sizeof(*wc_array));
 
