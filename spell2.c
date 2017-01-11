@@ -46,13 +46,13 @@ usage(void)
 }
 
 static void
-do_bigram(FILE *f)
+do_bigram(FILE *inputf, const char *whitelist_filepath)
 {
 
 	char *word = NULL;
 	size_t wordsize = 0;
 	ssize_t bytesread;
-	spell_t *spellt = spell_init("dict/bigram.txt");
+	spell_t *spellt = spell_init("dict/bigram.txt", whitelist_filepath);
 	char *line = NULL;
 	size_t linesize = 0;
 	ssize_t bytes_read;
@@ -66,7 +66,7 @@ do_bigram(FILE *f)
 	char *correction = NULL;
 	size_t i;
 
-	while ((bytes_read = getline(&line, &linesize, f)) != -1) {
+	while ((bytes_read = getline(&line, &linesize, inputf)) != -1) {
 		line[bytes_read - 1] = 0;
 		char *templine = line;
 		while (*templine) {
@@ -104,6 +104,11 @@ do_bigram(FILE *f)
 
 			if (is_known_word(word))
 				continue;
+
+			if (is_whitelisted_word(spellt, word)) {
+				sentence_end = 1;
+				continue;
+			}
 
 			if (correction != NULL) {
 				free(correction);
@@ -150,13 +155,13 @@ do_bigram(FILE *f)
 
 
 static void
-do_unigram(FILE *f)
+do_unigram(FILE *f, const char *whitelist_filepath)
 {
 
 	char *word = NULL;
 	size_t wordsize = 0;
 	ssize_t bytesread;
-	spell_t *spell = spell_init("dict/unigram.txt");
+	spell_t *spell = spell_init("dict/unigram.txt", whitelist_filepath);
 	char *line = NULL;
 	size_t linesize = 0;
 	ssize_t bytes_read;
@@ -188,6 +193,9 @@ do_unigram(FILE *f)
 			if (spell_is_known_word(spell, word, 1))
 				continue;
 
+			if (is_whitelisted_word(spell, word))
+				continue;
+
 			char **corrections = spell_get_suggestions(spell, word, 1);
 			size_t i = 0;
 			while(corrections && corrections[i] != NULL) {
@@ -204,9 +212,10 @@ main(int argc, char **argv)
 {
 	long ngram = 1;
 	FILE *input = stdin;
+	char *whitelist_filepath = NULL;
 	int ch;
 
-	while ((ch = getopt(argc, argv, "f:n:")) != -1) {
+	while ((ch = getopt(argc, argv, "f:n:w:")) != -1) {
 		switch (ch) {
 		case 'f':
 			input = fopen(optarg, "r");
@@ -216,14 +225,17 @@ main(int argc, char **argv)
 		case 'n':
 			ngram = strtol(optarg, NULL, 10);
 			break;
+		case 'w':
+			whitelist_filepath = optarg;
+			break;
 		default:
 			break;
 		}
 	}
 
 	if (ngram == 1)
-		do_unigram(input);
+		do_unigram(input, whitelist_filepath);
 	if (ngram == 2)
-		do_bigram(input);
+		do_bigram(input, whitelist_filepath);
 	return 0;
 }
