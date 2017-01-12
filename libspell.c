@@ -67,7 +67,7 @@ lower(char *str)
 static void
 free_word_list(word_list *list)
 {
-	if (list = NULL)
+	if (list == NULL)
 		return;
 
 	word_list *nodep = list;
