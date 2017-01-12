@@ -203,6 +203,10 @@ edits2(word_list *edits1_list)
 
 	while (nodep->next != NULL) {
 		templist = edits1(nodep->word);
+		nodep = nodep->next;
+		if (templist == NULL)
+			continue;
+
 		if (edits2_list == NULL) {
 			edits2_list = templist;
 			tail = edits2_list;
@@ -210,7 +214,6 @@ edits2(word_list *edits1_list)
 			tail->next = templist;
 		while (tail->next != NULL)
 			tail = tail->next;
-		nodep = nodep->next;
 	}
 	return edits2_list;
 }
