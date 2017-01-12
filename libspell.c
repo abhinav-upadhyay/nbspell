@@ -294,15 +294,16 @@ spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n, int n
 	}
 
 	char **corrections = emalloc((n + 1) * sizeof(char *));
-	corrections[corrections_count] = NULL;
+	corrections[n] = NULL;
 	qsort(wc_array, corrections_count, sizeof(*wc_array), max_count);
 	for (i = 0; i < n; i++) {
 		if (wc_array[i].word)
 			corrections[i] =  estrdup(wc_array[i].word);
 	}
 	//XXX: Handle the case when n < corrections_count
-	if (n < corrections_count)
-		corrections[n] = NULL;
+	if (corrections_count < n)
+		corrections[corrections_count] = NULL;
+	free(wc_array);
 	return corrections;
 }
 
@@ -405,10 +406,14 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 		word = estrdup(templine);
 		templine = tabindex + 1;
 		wcnode = emalloc(sizeof(*wcnode));
-		wcnode->word = estrdup(word);
+		wcnode->word = word;
 		wcnode->count = strtol(templine, NULL, 10);
 		rb_tree_insert_node(words_tree, wcnode);
+		free(line);
+		line = NULL;
 	}
+	free(line);
+	line = NULL;
 	fclose(f);
 
 	if ((f = fopen("dict/bigram.txt", "r")) == NULL)
@@ -430,10 +435,14 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 		word = estrdup(templine);
 		templine = tabindex + 1;
 		wcnode = emalloc(sizeof(*wcnode));
-		wcnode->word = estrdup(word);
+		wcnode->word = word;
 		wcnode->count = strtol(templine, NULL, 10);
 		rb_tree_insert_node(ngrams_tree, wcnode);
+		free(line);
+		line = NULL;
 	}
+	free(line);
+	line = NULL;
 	fclose(f);
 
 	if (whitelist_filepath == NULL || (f = fopen(whitelist_filepath, "r")) == NULL)
@@ -451,7 +460,10 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 		wcnode->word = word;
 		wcnode->count = 0;
 		rb_tree_insert_node(whitelist, wcnode);
+		free(line);
+		line = NULL;
 	}
+	free(line);
 	fclose(f);
 	return spellt;
 }

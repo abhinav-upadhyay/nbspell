@@ -212,7 +212,10 @@ do_unigram(FILE *f, const char *whitelist_filepath)
 			}
 			free_list(corrections);
 		}
+		free(line);
+		line = NULL;
 	}
+	free(line);
 }
 
 int
@@ -246,5 +249,7 @@ main(int argc, char **argv)
 		do_unigram(input, whitelist_filepath);
 	if (ngram == 2)
 		do_bigram(input, whitelist_filepath);
+	if (input != stdin)
+		fclose(input);
 	return 0;
 }
