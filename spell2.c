@@ -115,6 +115,9 @@ do_bigram(FILE *inputf, const char *whitelist_filepath)
 				correction = NULL;
 			}
 
+			/*
+			 * First word of the sentence
+			 */
 			if (prevword == NULL) {
 				char **s = spell_get_suggestions(spellt, word, 1);
 				if (s != NULL && s[0] != NULL)
@@ -126,7 +129,7 @@ do_bigram(FILE *inputf, const char *whitelist_filepath)
 				continue;
 			}
 
-			char **suggestions = spell( word);
+			char **suggestions = spell(word);
 			int max_index = -1;
 			size_t max_frequency = 0;
 			for (i = 0; suggestions && suggestions[i]; i++) {
@@ -139,13 +142,15 @@ do_bigram(FILE *inputf, const char *whitelist_filepath)
 				free(bigram_word);
 				bigram_word = NULL;
 			}
+
+			/* If no bigrams found, check the unigram index for this word */
 			if (max_index == -1) {
 				char **suggestions2 = spell_get_suggestions(spellt, word, 1);
 				if (suggestions2 && suggestions2[0])
-					printf("%s %s: %s\n", prevword, word, suggestions2[0]);
+					printf("%s: %s\n", word, suggestions2[0]);
 				free(suggestions2);
 			} else
-				printf("%s %s: %s\n", prevword, word, suggestions[max_index]);
+				printf("%s: %s\n", word, suggestions[max_index]);
 
 			free_list(suggestions);
 
