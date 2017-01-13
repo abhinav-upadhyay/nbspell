@@ -67,7 +67,9 @@ do_bigram(FILE *inputf, const char *whitelist_filepath)
 	size_t i;
 
 	while ((bytes_read = getline(&line, &linesize, inputf)) != -1) {
-		line[bytes_read - 1] = 0;
+		line[--bytes_read] = 0;
+		if (line[bytes_read] == '\r')
+			line[bytes_read] = 0;
 		char *templine = line;
 		while (*templine) {
 			if (sentence_end) {
@@ -165,11 +167,10 @@ do_unigram(FILE *f, const char *whitelist_filepath)
 
 	char *word = NULL;
 	size_t wordsize = 0;
-	ssize_t bytesread;
+	ssize_t bytes_read;
 	spell_t *spell = spell_init("dict/unigram.txt", whitelist_filepath);
 	char *line = NULL;
 	size_t linesize = 0;
-	ssize_t bytes_read;
 	word_count *wcnode;
 	word_count wc;
 	wc.count = 0;
@@ -177,7 +178,9 @@ do_unigram(FILE *f, const char *whitelist_filepath)
 
 
 	while ((bytes_read = getline(&line, &linesize, f)) != -1) {
-		line[bytes_read - 1] = 0;
+		line[--bytes_read] = 0;
+		if (line[bytes_read] == '\r')
+			line[bytes_read] = 0;
 		char *templine = line;
 		while (*templine) {
 			wordsize = strcspn(templine, "()<>@?\'\",;-:. \t");
