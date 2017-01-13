@@ -420,7 +420,7 @@ int
 is_whitelisted_word(spell_t *spell, const char *word)
 {
 	if (spell->whitelist == NULL)
-		return 1;
+		return 0;
 
 	word_count wc;
 	wc.word = (char *) word;
