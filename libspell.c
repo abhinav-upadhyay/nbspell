@@ -38,6 +38,11 @@
 #include "websters.c"
 #include "libspell.h"
 
+typedef struct word_list {
+	struct word_list *next;
+	char *word;
+} word_list;
+
 
 /*
  * This implementation is Based on the edit distance or Levenshtein distance technique.
@@ -59,6 +64,39 @@ lower(char *str)
 	return str;
 }
 
+static void
+free_word_list(word_list *list)
+{
+	if (list = NULL)
+		return;
+
+	word_list *nodep = list;
+	word_list *temp;
+
+	while (nodep != NULL) {
+		free(nodep->word);
+		temp = nodep->next;
+		free(nodep);
+		nodep = temp;
+	}
+}
+
+static void
+add_candidate_node(char *candidate, word_list **candidates, word_list **tail)
+{
+	if (*candidates == NULL) {
+		*candidates = emalloc(sizeof(**candidates));
+		(*candidates)->next = NULL;
+		(*candidates)->word = candidate;
+		*tail = *candidates;
+	} else {
+		word_list *node = emalloc(sizeof(*node));
+		node->word = candidate;
+		node->next = NULL;
+		(*tail)->next = node;
+		*tail = node;
+	}
+}
 
 /*
  * edits1--
@@ -76,19 +114,19 @@ lower(char *str)
  *  4. Inserts: Insert an alphabet at each of the character positions (one at a
  *      time. 26 * (n + 1) possible words.
  */
-static char **
+static word_list *
 edits1(char *word)
 {
 	size_t i, len_a, len_b;
 	char alphabet;
 	size_t wordlen = strlen(word);
+	if (wordlen <= 1)
+		return NULL;
 	size_t counter = 0;
 	set splits[wordlen + 1];
-
-	/* calculate number of possible permutations and allocate memory */
-	size_t size = COMBINATIONS(wordlen);
-	char **candidates = emalloc((size + 1) * sizeof(char *));
-
+	word_list *candidates = NULL;
+	word_list *tail = NULL;
+		
 	/* Start by generating a split up of the characters in the word */
 	for (i = 0; i < wordlen + 1; i++) {
 		splits[i].a = (char *) emalloc(i + 1);
@@ -113,7 +151,7 @@ edits1(char *word)
 			if (len_b - 1 > 0)
 				memcpy(candidate + len_a, splits[i].b + 1, len_b - 1);
 			candidate[wordlen - 1] = 0;
-			candidates[counter++] = candidate;
+			add_candidate_node(candidate, &candidates, &tail);
 		}
 		/* Transposes */
 		if (i < wordlen - 1 && len_b >= 2 && splits[i].b[0] != splits[i].b[1]) {
@@ -123,7 +161,7 @@ edits1(char *word)
 			candidate[len_a + 1] = splits[i].b[0];
 			memcpy(candidate + len_a + 2, splits[i].b + 2, len_b - 2);
 			candidate[wordlen] = 0;
-			candidates[counter++] = candidate;
+			add_candidate_node(candidate, &candidates, &tail);
 		}
 		/* For replaces and inserts, run a loop from 'a' to 'z' */
 		for (alphabet = 'a'; alphabet <= 'z'; alphabet++) {
@@ -135,7 +173,7 @@ edits1(char *word)
 				if (len_b - 1 >= 1)
 					memcpy(candidate + len_a + 1, splits[i].b + 1, len_b - 1);
 				candidate[wordlen] = 0;
-				candidates[counter++] = candidate;
+				add_candidate_node(candidate, &candidates, &tail);
 			}
 			/* Inserts */
 			char *candidate = emalloc(wordlen + 2);
@@ -144,10 +182,9 @@ edits1(char *word)
 			if (len_b >= 1)
 				memcpy(candidate + len_a + 1, splits[i].b, len_b);
 			candidate[wordlen + 1] = 0;
-			candidates[counter++] = candidate;
+			add_candidate_node(candidate, &candidates, &tail);
 		}
 	}
-	candidates[counter] = NULL;
 
 	for (i = 0; i < wordlen + 1; i++) {
 		free(splits[i].a);
@@ -155,27 +192,54 @@ edits1(char *word)
 	}
 	return candidates;
 }
+
+static word_list *
+edits2(word_list *edits1_list)
+{
+	word_list *nodep = edits1_list;
+	word_list *edits2_list = NULL;
+	word_list *tail = edits1_list;
+	word_list *templist;
+
+	while (nodep->next != NULL) {
+		templist = edits1(nodep->word);
+		if (edits2_list == NULL) {
+			edits2_list = templist;
+			tail = edits2_list;
+		} else
+			tail->next = templist;
+		while (tail->next != NULL)
+			tail = tail->next;
+		nodep = nodep->next;
+	}
+	return edits2_list;
+}
+
+
 /*
  * Takes a NULL terminated array of strings as input and returns a new array which
  * contains only those words which exist in the dictionary.
  */
 static char **
-get_corrections(char **candidate_list)
+get_corrections(word_list *candidate_list)
 {
 	if (candidate_list == NULL)
 		return NULL;
-	size_t i, corrections_count = 0;
+	size_t i = 0;
+	size_t corrections_count = 0;
 	size_t corrections_size = 16;
 	char **corrections = emalloc(corrections_size * sizeof(char *));
+	word_list *nodep = candidate_list;
 
-	while (candidate_list[i] != NULL) {
-		char *candidate = candidate_list[i++];
+	while (nodep->next != NULL) {
+		char *candidate = nodep->word;
 		if (is_known_word(candidate))
-			corrections[corrections_count++] = strdup(candidate);
+			corrections[corrections_count++] = estrdup(candidate);
 		if (corrections_count == corrections_size - 1) {
 			corrections_size *= 2;
 			corrections = erealloc(corrections, corrections_size * sizeof(char *));
 		}
+		nodep = nodep->next;
 	}
 	corrections[corrections_count] = NULL;
 	return corrections;
@@ -193,16 +257,19 @@ max_count(const void *node1, const void *node2)
 }
 
 static char **
-spell_get_corrections(spell_t *spell, char **candidate_list, size_t n, int ngram)
+spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n, int ngram)
 {
 	if (candidate_list == NULL)
 		return NULL;
+
 	size_t i = 0, corrections_count = 0;
 	size_t corrections_size = 16;
 	word_count *wc_array = emalloc(corrections_size * sizeof(*wc_array));
+	word_list *nodep = candidate_list;
 
-	while (candidate_list[i]) {
-		char *candidate = candidate_list[i++];
+	while (nodep->next != NULL) {
+		char *candidate = nodep->word;
+		nodep = nodep->next;
 		word_count node;
 		word_count *tree_node;
 		node.word = candidate;
@@ -210,9 +277,10 @@ spell_get_corrections(spell_t *spell, char **candidate_list, size_t n, int ngram
 			tree_node = rb_tree_find_node(spell->dictionary, &node);
 		else if (ngram == 2)
 			tree_node = rb_tree_find_node(spell->ngrams_tree, &node);
-		if (tree_node)
-			wc_array[corrections_count++] = *tree_node;
-		else
+		if (tree_node) {
+			node.count = tree_node->count ;
+			wc_array[corrections_count++] = node;
+		} else
 			continue;
 		if (corrections_count == corrections_size - 1) {
 			corrections_size *= 2;
@@ -260,11 +328,17 @@ char **
 spell(char *word)
 {
 	char **corrections = NULL;
-	char **candidates;
+	word_list *candidates;
+	word_list *candidates2;
 	lower(word);
 	candidates = edits1(word);
 	corrections = get_corrections(candidates);
-	free_list(candidates);
+	if (corrections == NULL) {
+		candidates2 = edits2(candidates);
+		corrections = get_corrections(candidates);
+		free_word_list(candidates2);
+	}
+	free_word_list(candidates);
 	return corrections;
 }
 /*
@@ -399,11 +473,17 @@ char **
 spell_get_suggestions(spell_t *spell, char *word, int ngram)
 {
 	char **corrections = NULL;
-	char **candidates;
+	word_list *candidates;
+	word_list *candidates2;
 	lower(word);
 	candidates = edits1(word);
 	corrections = spell_get_corrections(spell, candidates, 1, ngram);
-	free_list(candidates);
+	if (corrections == NULL) {
+		candidates2 = edits2(candidates);
+		corrections = spell_get_corrections(spell, candidates2, 1, ngram);
+		free_word_list(candidates2);
+	}
+	free_word_list(candidates);
 	return corrections;
 }
 
