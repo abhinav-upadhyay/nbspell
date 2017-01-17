@@ -480,24 +480,19 @@ spell_is_known_word(spell_t *spell, const char *word, int ngram)
 }
 
 char **
-spell_get_suggestions(spell_t *spell, char *word, int ngram)
+spell_get_suggestions(spell_t * spell, char *word, int ngram)
 {
 	char **corrections = NULL;
 	word_list *candidates;
 	word_list *candidates2;
 	lower(word);
 	candidates = edits1(word);
-	word_list *tail = candidates;
-	candidates2 = edits2(candidates);
-	while(tail->next)
-		tail = tail->next;
-	tail->next= candidates2;
-	corrections = spell_get_corrections(spell, candidates, 5, ngram);
-/*	if (corrections == NULL) {
+	corrections = spell_get_corrections(spell, candidates, 1, ngram);
+	if (corrections == NULL) {
 		candidates2 = edits2(candidates);
-		corrections = spell_get_corrections(spell, candidates2, 5, ngram);
+		corrections = spell_get_corrections(spell, candidates2, 1, ngram);
 		free_word_list(candidates2);
-	}*/
+	}
 	free_word_list(candidates);
 	return corrections;
 }
