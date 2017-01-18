@@ -45,6 +45,50 @@ usage(void)
 	exit(1);
 }
 
+
+static char *
+sanitize_string(char *s)
+{
+	size_t len = strlen(s);
+	int i = 0;
+	if (s[0] == '(' && s[len - 1] == ')') {
+		s[--len] = 0;
+		s++;
+		--len;
+	}
+	char *ret = malloc(len + 1);
+	memset(ret, 0, len + 1);
+	while (*s) {
+		/*
+		 * Detect apostrophe and stop copying characters immediately
+		 */
+		if ((*s == '\'') && (
+			!strncmp(s + 1, "s", 1) ||
+			!strncmp(s + 1, "es", 2) ||
+			!strncmp(s + 1, "m", 1) ||
+			!strncmp(s + 1, "d", 1) ||
+			!strncmp(s + 1, "ll", 2))) {
+			break;
+		}
+		/*
+		 * If the word contains a dot in between that suggests it is either
+		 * an abbreviation or somekind of a URL. Do not bother with such words.
+		 */
+		if (*s == '.') {
+			free(ret);
+			return NULL;
+		}
+		//Why bother with words which contain other characters or numerics ?
+		    if (!isalpha(*s)) {
+			free(ret);
+			return NULL;
+		}
+		ret[i++] = *s++;
+	}
+	ret[i] = 0;
+	return ret;
+}
+
 static void
 do_bigram(FILE *inputf, const char *whitelist_filepath)
 {
@@ -183,7 +227,7 @@ do_unigram(FILE *f, const char *whitelist_filepath)
 			line[bytes_read] = 0;
 		char *templine = line;
 		while (*templine) {
-			wordsize = strcspn(templine, "()<>@?\'\",;-:. \t");
+			wordsize = strcspn(templine, " ");
 			templine[wordsize] = 0;
 			word = templine;
 			templine += wordsize + 1;
@@ -191,26 +235,32 @@ do_unigram(FILE *f, const char *whitelist_filepath)
 				continue;
 			while (*templine == ' ')
 				templine++;
-			/*			sanitized_word = sanitize_string(word);
-						if (!sanitized_word || !sanitized_word[0]) {
-						free(sanitized_word);
-						continue;
-						}*/
 
 			lower(word);
-			if (spell_is_known_word(spell, word, 1))
+			sanitized_word = sanitize_string(word);
+			if (!sanitized_word || !sanitized_word[0]) {
+				free(sanitized_word);
 				continue;
+			}
 
-			if (is_whitelisted_word(spell, word))
+			if (spell_is_known_word(spell, sanitized_word, 1)) {
+				free(sanitized_word);
 				continue;
+			}
 
-			char **corrections = spell_get_suggestions(spell, word, 1);
+			if (is_whitelisted_word(spell, sanitized_word)) {
+				free(sanitized_word);
+				continue;
+			}
+
+			char **corrections = spell_get_suggestions(spell, sanitized_word, 1);
 			size_t i = 0;
 			while(corrections && corrections[i] != NULL) {
 				char *correction = corrections[i++];
 				printf("%s: %s\n", word, correction);
 			}
 			free_list(corrections);
+			free(sanitized_word);
 		}
 		free(line);
 		line = NULL;
