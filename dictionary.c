@@ -10,6 +10,8 @@
 #include <sys/rbtree.h>
 #include "libspell.h"
 
+#include "websters.c"
+
 static char *
 sanitize_string(char *s)
 {
@@ -94,8 +96,8 @@ parse_file(FILE * f, long ngram)
 	size_t linecount = 0;
 
 	while ((bytes_read = getline(&line, &linesize, f)) != -1) {
-		if (++linecount >= 400000)
-			break;
+	//	if (++linecount >= 400000)
+	//		break;
 		templine = line;
 		templine[bytes_read--] = 0;
 		if (templine[bytes_read] == '\r')
@@ -184,6 +186,13 @@ parse_file(FILE * f, long ngram)
 	word_count *tmp;
 	RB_TREE_FOREACH(tmp, &words_tree)
 	    fprintf(out, "%s\t%d\n", tmp->word, tmp->count);
+	size_t i;
+	for (i = 0; i < sizeof(dict)/sizeof(dict[0]); i++) {
+		wc.word = (char *) dict[i];
+		void *node = rb_tree_find_node(&words_tree, &wc);
+		if (node == NULL)
+			fprintf(out, "%s\t%d\n", dict[i], 1);
+	}
 	fclose(out);
 }
 
