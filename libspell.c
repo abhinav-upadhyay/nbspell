@@ -405,6 +405,7 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 		}
 		tabindex[0] = 0;
 		word = estrdup(templine);
+		lower(word);
 		templine = tabindex + 1;
 		wcnode = emalloc(sizeof(*wcnode));
 		wcnode->word = word;
