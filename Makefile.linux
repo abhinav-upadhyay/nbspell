@@ -1,0 +1,54 @@
+CFLAGS=-Wall -c -std=gnu99 -O2 -g
+LFLAGS=-lbsd 
+TOOL_NBPERF=nbperf
+TOOL_SED=sed
+CC=clang
+all:	spell dictionary spell2
+
+spell:	libspell.o spell.o rb.o mi_vector_hash.o
+	${CC} -o spell libspell.o spell.o rb.o mi_vector_hash.o  ${LFLAGS}
+
+
+spell2:	spell2.o rb.o libspell.o mi_vector_hash.o
+	${CC} -o spell2 libspell.o spell2.o rb.o mi_vector_hash.o  ${LFLAGS}
+
+dictionary:	dictionary.o libspell.o rb.o mi_vector_hash.o
+	${CC} -o dictionary libspell.o dictionary.o rb.o mi_vector_hash.o ${LFLAGS}
+
+spell.o:	spell.c 
+	${CC} ${CFLAGS} spell.c
+
+spell2.o:	spell2.c 
+	${CC} ${CFLAGS} spell2.c
+
+dictionary.o:	dictionary.c 
+	${CC} ${CFLAGS} dictionary.c
+
+libspell.o:	libspell.c mi_vector_hash.c
+	${CC} ${CFLAGS} libspell.c mi_vector_hash.c
+
+rb.o:	rb.c
+	${CC} ${CFLAGS} rb.c
+
+mi_vector_hash.o:	mi_vector_hash.c
+	${CC} ${CFLAGS} mi_vector_hash.c
+
+libspell.c: websters.c
+
+#websters.c:	dict/web3
+#	( set -e; ${TOOL_NBPERF} -L ANSI-C -H dict_hash dict/web3;    \
+#	echo 'static const char *dict[] = {';          \
+#	${TOOL_SED} -e 's|^\(.*\)$$|    "\1",|' dict/web3;     \
+#	echo '};'                           \
+#	) > websters.c
+
+websters.c: dict/web3
+	( set -e; \
+	 ${TOOL_NBPERF} -n dict_hash -s -p dict/web3;	\
+	echo 'static const char *dict[] = {';			\
+	${TOOL_SED} -e 's|^\(.*\)$$|	"\1",|' dict/web3;		\
+	echo '};'							\
+	) > websters.c;  \
+	sed  -i '2 a void mi_vector_hash(const void * restrict , size_t , uint32_t ,uint32_t hashes[3]);' websters.c;
+clean:
+	rm -f *.o spell spell2 dictionary websters.c
