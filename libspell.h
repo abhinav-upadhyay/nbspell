@@ -1,10 +1,10 @@
 #ifndef LIBSPELL_H
 #define LIBSPELL_H
 
-#include <sys/rbtree.h>
-
+#include "rbtree.h"
 /* Number of possible arrangements of a word of length ``n'' at edit distance 1 */
 #define COMBINATIONS(n) n + n - 1 + 26 * n + 26 * (n + 1)
+
 
 typedef struct set {
 	char *a;
@@ -32,5 +32,6 @@ char **spell_get_suggestions(spell_t *, char *, int);
 int compare_words(void *, const void *, const void *);
 char *lower(char *);
 int is_whitelisted_word(spell_t *, const char *);
+void spell_destroy(spell_t *);
 
 #endif

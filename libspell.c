@@ -33,7 +33,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <util.h>
+#include <stdint.h>
+//#include <bsd/util.h>
 
 #include "websters.c"
 #include "libspell.h"
@@ -67,7 +68,7 @@ lower(char *str)
 static void
 free_word_list(word_list *list)
 {
-	if (list = NULL)
+	if (list == NULL)
 		return;
 
 	word_list *nodep = list;
@@ -85,12 +86,12 @@ static void
 add_candidate_node(char *candidate, word_list **candidates, word_list **tail)
 {
 	if (*candidates == NULL) {
-		*candidates = emalloc(sizeof(**candidates));
+		*candidates = malloc(sizeof(**candidates));
 		(*candidates)->next = NULL;
 		(*candidates)->word = candidate;
 		*tail = *candidates;
 	} else {
-		word_list *node = emalloc(sizeof(*node));
+		word_list *node = malloc(sizeof(*node));
 		node->word = candidate;
 		node->next = NULL;
 		(*tail)->next = node;
@@ -129,8 +130,8 @@ edits1(char *word)
 		
 	/* Start by generating a split up of the characters in the word */
 	for (i = 0; i < wordlen + 1; i++) {
-		splits[i].a = (char *) emalloc(i + 1);
-		splits[i].b = (char *) emalloc(wordlen - i + 1);
+		splits[i].a = (char *) malloc(i + 1);
+		splits[i].b = (char *) malloc(wordlen - i + 1);
 		memcpy(splits[i].a, word, i);
 		memcpy(splits[i].b, word + i, wordlen - i + 1);
 		splits[i].a[i] = 0;
@@ -146,7 +147,7 @@ edits1(char *word)
 
 		/* Deletes */
 		if (i < wordlen) {
-			char *candidate = emalloc(wordlen);
+			char *candidate = malloc(wordlen);
 			memcpy(candidate, splits[i].a, len_a);
 			if (len_b - 1 > 0)
 				memcpy(candidate + len_a, splits[i].b + 1, len_b - 1);
@@ -155,7 +156,7 @@ edits1(char *word)
 		}
 		/* Transposes */
 		if (i < wordlen - 1 && len_b >= 2 && splits[i].b[0] != splits[i].b[1]) {
-			char *candidate = emalloc(wordlen + 1);
+			char *candidate = malloc(wordlen + 1);
 			memcpy(candidate, splits[i].a, len_a);
 			candidate[len_a] = splits[i].b[1];
 			candidate[len_a + 1] = splits[i].b[0];
@@ -167,7 +168,7 @@ edits1(char *word)
 		for (alphabet = 'a'; alphabet <= 'z'; alphabet++) {
 			/* Replaces */
 			if (i < wordlen && splits[i].b[0] != alphabet) {
-				char *candidate = emalloc(wordlen + 1);
+				char *candidate = malloc(wordlen + 1);
 				memcpy(candidate, splits[i].a, len_a);
 				candidate[len_a] = alphabet;
 				if (len_b - 1 >= 1)
@@ -176,7 +177,7 @@ edits1(char *word)
 				add_candidate_node(candidate, &candidates, &tail);
 			}
 			/* Inserts */
-			char *candidate = emalloc(wordlen + 2);
+			char *candidate = malloc(wordlen + 2);
 			memcpy(candidate, splits[i].a, len_a);
 			candidate[len_a] = alphabet;
 			if (len_b >= 1)
@@ -228,16 +229,16 @@ get_corrections(word_list *candidate_list)
 	size_t i = 0;
 	size_t corrections_count = 0;
 	size_t corrections_size = 16;
-	char **corrections = emalloc(corrections_size * sizeof(char *));
+	char **corrections = malloc(corrections_size * sizeof(char *));
 	word_list *nodep = candidate_list;
 
 	while (nodep->next != NULL) {
 		char *candidate = nodep->word;
 		if (is_known_word(candidate))
-			corrections[corrections_count++] = estrdup(candidate);
+			corrections[corrections_count++] = strdup(candidate);
 		if (corrections_count == corrections_size - 1) {
 			corrections_size *= 2;
-			corrections = erealloc(corrections, corrections_size * sizeof(char *));
+			corrections = realloc(corrections, corrections_size * sizeof(char *));
 		}
 		nodep = nodep->next;
 	}
@@ -264,7 +265,7 @@ spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n, int n
 
 	size_t i = 0, corrections_count = 0;
 	size_t corrections_size = 16;
-	word_count *wc_array = emalloc(corrections_size * sizeof(*wc_array));
+	word_count *wc_array = malloc(corrections_size * sizeof(*wc_array));
 	word_list *nodep = candidate_list;
 
 	while (nodep->next != NULL) {
@@ -284,7 +285,7 @@ spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n, int n
 			continue;
 		if (corrections_count == corrections_size - 1) {
 			corrections_size *= 2;
-			wc_array = erealloc(wc_array, corrections_size * sizeof(*wc_array));
+			wc_array = realloc(wc_array, corrections_size * sizeof(*wc_array));
 		}
 	}
 
@@ -293,16 +294,17 @@ spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n, int n
 		return NULL;
 	}
 
-	char **corrections = emalloc((n + 1) * sizeof(char *));
-	corrections[corrections_count] = NULL;
+	char **corrections = malloc((n + 1) * sizeof(char *));
+	corrections[n] = NULL;
 	qsort(wc_array, corrections_count, sizeof(*wc_array), max_count);
 	for (i = 0; i < n; i++) {
 		if (wc_array[i].word)
-			corrections[i] =  estrdup(wc_array[i].word);
+			corrections[i] =  strdup(wc_array[i].word);
 	}
 	//XXX: Handle the case when n < corrections_count
-	if (n < corrections_count)
-		corrections[n] = NULL;
+	if (corrections_count < n)
+		corrections[corrections_count] = NULL;
+    free(wc_array);
 	return corrections;
 }
 
@@ -372,11 +374,11 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 		.rbto_context = NULL
 	};
 
-	words_tree = emalloc(sizeof(*words_tree));
-	ngrams_tree = emalloc(sizeof(*ngrams_tree));
+	words_tree = malloc(sizeof(*words_tree));
+	ngrams_tree = malloc(sizeof(*ngrams_tree));
 	rb_tree_init(words_tree, &tree_ops);
 	rb_tree_init(ngrams_tree, &tree_ops);
-	spellt = emalloc(sizeof(*spellt));
+	spellt = malloc(sizeof(*spellt));
 	spellt->dictionary = words_tree;
 	spellt->ngrams_tree = ngrams_tree;
 	spellt->whitelist = NULL;
@@ -402,13 +404,19 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 			return NULL;
 		}
 		tabindex[0] = 0;
-		word = estrdup(templine);
+		word = strdup(templine);
 		templine = tabindex + 1;
-		wcnode = emalloc(sizeof(*wcnode));
-		wcnode->word = estrdup(word);
+		wcnode = malloc(sizeof(*wcnode));
+		wcnode->word = word;
 		wcnode->count = strtol(templine, NULL, 10);
 		rb_tree_insert_node(words_tree, wcnode);
+        free(line);
+        line = NULL;
+        linesize = 0;
+
 	}
+    free(line);
+    line = NULL;
 	fclose(f);
 
 	if ((f = fopen("dict/bigram.txt", "r")) == NULL)
@@ -427,31 +435,39 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 			return spellt;
 		}
 		tabindex[0] = 0;
-		word = estrdup(templine);
+		word = strdup(templine);
 		templine = tabindex + 1;
-		wcnode = emalloc(sizeof(*wcnode));
-		wcnode->word = estrdup(word);
+		wcnode = malloc(sizeof(*wcnode));
+		wcnode->word = word;
 		wcnode->count = strtol(templine, NULL, 10);
 		rb_tree_insert_node(ngrams_tree, wcnode);
+        free(line);
+        line = NULL;
+        linesize = 0;
 	}
+    free(line);
+    line = NULL;
 	fclose(f);
 
 	if (whitelist_filepath == NULL || (f = fopen(whitelist_filepath, "r")) == NULL)
 		return spellt;
 
 	static rb_tree_t *whitelist;
-	whitelist = emalloc(sizeof(*whitelist));
+	whitelist = malloc(sizeof(*whitelist));
 	rb_tree_init(whitelist, &tree_ops);
 	spellt->whitelist = whitelist;
 
 	while ((bytes_read = getline(&line, &linesize, f)) != -1) {
 		line[bytes_read - 1] = 0;
-		word = estrdup(line);
-		wcnode = emalloc(sizeof(*wcnode));
+		word = strdup(line);
+		wcnode = malloc(sizeof(*wcnode));
 		wcnode->word = word;
 		wcnode->count = 0;
 		rb_tree_insert_node(whitelist, wcnode);
+        free(line);
+        line = NULL;
 	}
+    free(line);
 	fclose(f);
 	return spellt;
 }
@@ -506,4 +522,30 @@ is_whitelisted_word(spell_t *spell, const char *word)
 	wc.word = (char *) word;
 	word_count *node = rb_tree_find_node(spell->whitelist, &wc);
 	return node != NULL;
+}
+
+static void
+free_tree(rb_tree_t *tree)
+{
+    word_count *wc;
+    while ((wc = RB_TREE_MIN(tree)) != NULL) {
+        rb_tree_remove_node(tree, wc);
+        free(wc->word);
+        free(wc);
+    }
+    free(tree);
+}
+
+void
+spell_destroy(spell_t *spell)
+{
+    free_tree(spell->dictionary);
+    
+    if (spell->ngrams_tree != NULL)
+        free_tree(spell->ngrams_tree);
+
+    if (spell->whitelist != NULL)
+        free_tree(spell->whitelist);
+    free(spell);
+
 }

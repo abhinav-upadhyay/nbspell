@@ -27,13 +27,14 @@
  * SUCH DAMAGE.
  */
 
+#define _GNU_SOURCE
 #include <ctype.h>
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <util.h>
+//#include <util.h>
 
 #include "libspell.h"
 
@@ -123,7 +124,7 @@ do_bigram(FILE *inputf, const char *whitelist_filepath)
 			if (prevword == NULL) {
 				char **s = spell_get_suggestions(spellt, word, 1);
 				if (s != NULL && s[0] != NULL)
-					correction = estrdup(s[0]);
+					correction = strdup(s[0]);
 				free_list(s);
 				if (correction != NULL)
 					printf("%s: %s\n", word, correction);
@@ -135,7 +136,7 @@ do_bigram(FILE *inputf, const char *whitelist_filepath)
 			int max_index = -1;
 			size_t max_frequency = 0;
 			for (i = 0; suggestions && suggestions[i]; i++) {
-				easprintf(&bigram_word, "%s %s", prevword, suggestions[i]);
+				asprintf(&bigram_word, "%s %s", prevword, suggestions[i]);
 				int suggestion_frequency = spell_is_known_word(spellt, bigram_word, 2);
 				if (suggestion_frequency > max_frequency) {
 					max_frequency = suggestion_frequency;
@@ -157,6 +158,8 @@ do_bigram(FILE *inputf, const char *whitelist_filepath)
 			free_list(suggestions);
 
 		}
+        free(line);
+        line = NULL;
 	}
 }
 
@@ -212,7 +215,12 @@ do_unigram(FILE *f, const char *whitelist_filepath)
 			}
 			free_list(corrections);
 		}
+        free(line);
+        line = NULL;
+        linesize = 0;
 	}
+    free(line);
+    spell_destroy(spell);
 }
 
 int
@@ -246,5 +254,7 @@ main(int argc, char **argv)
 		do_unigram(input, whitelist_filepath);
 	if (ngram == 2)
 		do_bigram(input, whitelist_filepath);
+    if (input != stdin)
+        fclose(input);
 	return 0;
 }
