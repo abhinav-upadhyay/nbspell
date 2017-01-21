@@ -199,9 +199,11 @@ do_bigram(FILE *inputf, const char *whitelist_filepath)
 				printf("%s: %s\n", word, suggestions[max_index]);
 
 			free_list(suggestions);
-
 		}
+		free(line);
+		line = NULL;
 	}
+	free(line);
 }
 
 
