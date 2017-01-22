@@ -41,6 +41,7 @@
 typedef struct word_list {
 	struct word_list *next;
 	char *word;
+	float weight;
 } word_list;
 
 
@@ -82,17 +83,19 @@ free_word_list(word_list *list)
 }
 
 static void
-add_candidate_node(char *candidate, word_list **candidates, word_list **tail)
+add_candidate_node(char *candidate, word_list **candidates, word_list **tail, float weight)
 {
 	if (*candidates == NULL) {
 		*candidates = emalloc(sizeof(**candidates));
 		(*candidates)->next = NULL;
 		(*candidates)->word = candidate;
+		(*candidates)->weight = weight;
 		*tail = *candidates;
 	} else {
 		word_list *node = emalloc(sizeof(*node));
 		node->word = candidate;
 		node->next = NULL;
+		node->weight = weight;
 		(*tail)->next = node;
 		*tail = node;
 	}
@@ -115,7 +118,7 @@ add_candidate_node(char *candidate, word_list **candidates, word_list **tail)
  *      time. 26 * (n + 1) possible words.
  */
 static word_list *
-edits1(char *word)
+edits1(char *word, size_t distance)
 {
 	size_t i, len_a, len_b;
 	char alphabet;
@@ -151,7 +154,11 @@ edits1(char *word)
 			if (len_b - 1 > 0)
 				memcpy(candidate + len_a, splits[i].b + 1, len_b - 1);
 			candidate[wordlen - 1] = 0;
-			add_candidate_node(candidate, &candidates, &tail);
+			float weight = 1.0 / distance;
+			if (i == 0)
+				weight /= 1000;
+			weight /= 10;
+			add_candidate_node(candidate, &candidates, &tail, weight);
 		}
 		/* Transposes */
 		if (i < wordlen - 1 && len_b >= 2 && splits[i].b[0] != splits[i].b[1]) {
@@ -161,10 +168,14 @@ edits1(char *word)
 			candidate[len_a + 1] = splits[i].b[0];
 			memcpy(candidate + len_a + 2, splits[i].b + 2, len_b - 2);
 			candidate[wordlen] = 0;
-			add_candidate_node(candidate, &candidates, &tail);
+			float weight = 1.0 / distance;
+			if (i == 0)
+				weight /= 1000;
+			add_candidate_node(candidate, &candidates, &tail, weight);
 		}
 		/* For replaces and inserts, run a loop from 'a' to 'z' */
 		for (alphabet = 'a'; alphabet <= 'z'; alphabet++) {
+			float weight = 1.0 / distance;
 			/* Replaces */
 			if (i < wordlen && splits[i].b[0] != alphabet) {
 				char *candidate = emalloc(wordlen + 1);
@@ -173,7 +184,10 @@ edits1(char *word)
 				if (len_b - 1 >= 1)
 					memcpy(candidate + len_a + 1, splits[i].b + 1, len_b - 1);
 				candidate[wordlen] = 0;
-				add_candidate_node(candidate, &candidates, &tail);
+				weight = 1.0 /distance;
+				if (i == 0)
+					weight /= 1000;
+				add_candidate_node(candidate, &candidates, &tail, weight);
 			}
 			/* Inserts */
 			char *candidate = emalloc(wordlen + 2);
@@ -182,7 +196,11 @@ edits1(char *word)
 			if (len_b >= 1)
 				memcpy(candidate + len_a + 1, splits[i].b, len_b);
 			candidate[wordlen + 1] = 0;
-			add_candidate_node(candidate, &candidates, &tail);
+			weight = 1.0 /distance;
+			if (i == 0)
+				weight /= 1000;
+			weight *= 10;
+			add_candidate_node(candidate, &candidates, &tail, weight);
 		}
 	}
 
@@ -202,7 +220,7 @@ edits2(word_list *edits1_list)
 	word_list *templist;
 
 	while (nodep->next != NULL) {
-		templist = edits1(nodep->word);
+		templist = edits1(nodep->word, 2);
 		nodep = nodep->next;
 		if (templist == NULL)
 			continue;
@@ -251,12 +269,12 @@ get_corrections(word_list *candidate_list)
 static int
 max_count(const void *node1, const void *node2)
 {
-	word_count *wc1 = (word_count *) node1;
-	word_count *wc2 = (word_count *) node2;
-	if (wc1->count == wc2->count)
+	word_list *wc1 = (word_list *) node1;
+	word_list *wc2 = (word_list *) node2;
+	if (wc1->weight == wc2->weight)
 		return 0;
 
-	return wc1->count > wc2->count? -1: 1;
+	return wc1->weight > wc2->weight ? -1: 1;
 }
 
 static char **
@@ -267,22 +285,27 @@ spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n, int n
 
 	size_t i = 0, corrections_count = 0;
 	size_t corrections_size = 16;
-	word_count *wc_array = emalloc(corrections_size * sizeof(*wc_array));
+	word_list *wc_array = emalloc(corrections_size * sizeof(*wc_array));
 	word_list *nodep = candidate_list;
+	float weight;
 
 	while (nodep->next != NULL) {
 		char *candidate = nodep->word;
+		weight = nodep->weight;
 		nodep = nodep->next;
+		word_list listnode;
 		word_count node;
 		word_count *tree_node;
+		node.word = candidate;
 		node.word = candidate;
 		if (ngram == 1)
 			tree_node = rb_tree_find_node(spell->dictionary, &node);
 		else if (ngram == 2)
 			tree_node = rb_tree_find_node(spell->ngrams_tree, &node);
 		if (tree_node) {
-			node.count = tree_node->count ;
-			wc_array[corrections_count++] = node;
+			listnode.weight = tree_node->count * weight;
+			listnode.word = candidate;
+			wc_array[corrections_count++] = listnode;
 		} else
 			continue;
 		if (corrections_count == corrections_size - 1) {
@@ -333,7 +356,7 @@ spell(char *word)
 	word_list *candidates;
 	word_list *candidates2;
 	lower(word);
-	candidates = edits1(word);
+	candidates = edits1(word, 1);
 	corrections = get_corrections(candidates);
 	if (corrections == NULL) {
 		candidates2 = edits2(candidates);
@@ -490,7 +513,7 @@ spell_get_suggestions(spell_t * spell, char *word, int ngram)
 	word_list *candidates;
 	word_list *candidates2;
 	lower(word);
-	candidates = edits1(word);
+	candidates = edits1(word, 1);
 	corrections = spell_get_corrections(spell, candidates, 1, ngram);
 	if (corrections == NULL) {
 		candidates2 = edits2(candidates);
