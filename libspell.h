@@ -21,6 +21,7 @@ typedef struct spell_t {
 	rb_tree_t *dictionary;
 	rb_tree_t *ngrams_tree;
 	rb_tree_t *whitelist;
+	rb_tree_t *soundex_tree;
 } spell_t;
 
 char ** spell(char *);
@@ -32,5 +33,7 @@ char **spell_get_suggestions(spell_t *, char *, int);
 int compare_words(void *, const void *, const void *);
 char *lower(char *);
 int is_whitelisted_word(spell_t *, const char *);
+char *soundex(const char *);
+void print_edits(char *);
 
 #endif
