@@ -686,10 +686,10 @@ spell_get_suggestions(spell_t * spell, char *word, int ngram)
 			candidates = tail;
 		}
 	}
-	corrections = spell_get_corrections(spell, candidates, 10, ngram);
+	corrections = spell_get_corrections(spell, candidates, 1, ngram);
 	if (corrections == NULL) {
 		candidates2 = edits2(candidates);
-		corrections = spell_get_corrections(spell, candidates2, 10, ngram);
+		corrections = spell_get_corrections(spell, candidates2, 1, ngram);
 		free_word_list(candidates2);
 	}
 	free_word_list(candidates);
