@@ -1,12 +1,12 @@
 .include <bsd.own.mk>
 
-PROGS=			spell dictionary spell2 wikipedia edits soundex
+PROGS=			spell dictionary spell2 benchmark edits soundex
 SRCS.spell=		spell.c libspell.c
 SRCS.spell2=		spell2.c libspell.c
-SRCS.wikipedia=		wikipedia.c libspell.c
 SRCS.dictionary=	dictionary.c libspell.c
 SRCS.edits=	edits.c libspell.c
 SRCS.soundex=	soundex.c libspell.c
+SRCS.benchmark=	benchmark.c libspell.c
 
 LDADD+= -lutil
 
