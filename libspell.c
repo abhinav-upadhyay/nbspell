@@ -130,6 +130,8 @@ edits1(char *word, size_t distance)
 	set splits[wordlen + 1];
 	word_list *candidates = NULL;
 	word_list *tail = NULL;
+	char *word_soundex = soundex(word);
+	char *candidate_soundex;
 		
 	/* Start by generating a split up of the characters in the word */
 	for (i = 0; i < wordlen + 1; i++) {
@@ -159,6 +161,10 @@ edits1(char *word, size_t distance)
 			if (i == 0)
 				weight /= 1000;
 			weight /= 10;
+			candidate_soundex = soundex(candidate);
+			if (word_soundex && strcmp(candidate_soundex, word_soundex) == 0)
+				weight *= 20;
+			free(candidate_soundex);
 			add_candidate_node(candidate, &candidates, &tail, weight);
 		}
 		/* Transposes */
@@ -172,6 +178,10 @@ edits1(char *word, size_t distance)
 			float weight = 1.0 / distance;
 			if (i == 0)
 				weight /= 1000;
+			candidate_soundex = soundex(candidate);
+			if (word_soundex && strcmp(candidate_soundex, word_soundex) == 0)
+				weight *= 20;
+			free(candidate_soundex);
 			add_candidate_node(candidate, &candidates, &tail, weight);
 		}
 		/* For replaces and inserts, run a loop from 'a' to 'z' */
@@ -188,6 +198,11 @@ edits1(char *word, size_t distance)
 				weight = 1.0 /distance;
 				if (i == 0)
 					weight /= 1000;
+				candidate_soundex = soundex(candidate);
+				if (word_soundex && strcmp(candidate_soundex, word_soundex) == 0)
+					weight *= 20;
+				weight /= 10;
+				free(candidate_soundex);
 				add_candidate_node(candidate, &candidates, &tail, weight);
 			}
 			/* Inserts */
@@ -201,6 +216,10 @@ edits1(char *word, size_t distance)
 			if (i == 0)
 				weight /= 1000;
 			weight *= 10;
+			candidate_soundex = soundex(candidate);
+			if (word_soundex && strcmp(candidate_soundex, word_soundex) == 0)
+				weight *= 20;
+			free(candidate_soundex);
 			add_candidate_node(candidate, &candidates, &tail, weight);
 		}
 	}
@@ -209,6 +228,7 @@ edits1(char *word, size_t distance)
 		free(splits[i].a);
 		free(splits[i].b);
 	}
+	free(word_soundex);
 	return candidates;
 }
 
@@ -297,7 +317,6 @@ spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n, int n
 		word_list listnode;
 		word_count node;
 		word_count *tree_node;
-		node.word = candidate;
 		node.word = candidate;
 		if (ngram == 1)
 			tree_node = rb_tree_find_node(spell->dictionary, &node);
@@ -493,7 +512,9 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 		rb_tree_init(soundex_tree, &soundex_tree_ops);
 		spellt->soundex_tree = soundex_tree;
 		while ((bytes_read = getline(&line, &linesize, f)) != -1) {
-			line[bytes_read - 1] = 0;
+			line[--bytes_read] = 0;
+			if (line[bytes_read - 1] == '\r')
+				line[bytes_read - 1] = 0;
 			char *templine = line;
 			char *tabindex = strchr(templine, '\t');
 			if (tabindex == NULL) {
@@ -506,22 +527,25 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 			tabindex[0] = 0;
 			char *soundex_code = templine;
 			templine = tabindex + 1;
+			word = templine;
 			word_list *listnode;
 			word_list templistnode;
 			templistnode.word = soundex_code;
 			listnode = rb_tree_find_node(soundex_tree, &templistnode);
 			if (listnode != NULL) {
 				word_list *newlistnode = emalloc(sizeof(*newlistnode));
-				newlistnode->word = estrdup(soundex_code);
-				newlistnode->next = listnode;
-				newlistnode->weight = 12.0;
-				rb_tree_insert_node(soundex_tree, newlistnode);
-				listnode = newlistnode;
+				newlistnode->word = estrdup(word);
+				newlistnode->next = listnode->next;
+				newlistnode->weight = .01;
+				listnode->next = newlistnode;
 			} else {
 				listnode = emalloc(sizeof(*listnode));
 				listnode->word = estrdup(soundex_code);
-				listnode->weight = 12.0;
-				listnode->next= NULL;
+				word_list *newlistnode = emalloc(sizeof(*newlistnode));
+				newlistnode->word = estrdup(word);
+				newlistnode->next = NULL;
+				newlistnode->weight = .01;
+				listnode->next= newlistnode;
 				rb_tree_insert_node(soundex_tree, listnode);
 			}
 			free(line);
@@ -559,6 +583,8 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 char *
 soundex(const char *word)
 {
+	if (word[0] == 0)
+		return NULL;
 	char *soundex_code = emalloc(5);
 	char *snd_buffer = estrdup(word);
 	lower(snd_buffer);
@@ -619,8 +645,9 @@ soundex(const char *word)
 	i = 1;
 	c = 0;
 	while (snd_buffer[i] != 0) {
-		if (snd_buffer[i++] == '-') {
+		if (snd_buffer[i] == '-') {
 			c = 0;
+			i++;
 			continue;
 		}
 		if (c == 0) {
@@ -650,6 +677,35 @@ soundex(const char *word)
 	return soundex_code;
 }
 
+static word_list *
+copy_word_list(word_list * list)
+{
+	if (list == NULL)
+		return NULL;
+
+	word_list *newnode;
+	word_list *tail = NULL;
+	word_list *head = NULL;
+	word_list *tempnode = list;
+	while (tempnode != NULL) {
+		newnode = emalloc(sizeof(*newnode));
+		newnode->word = estrdup(tempnode->word);
+		newnode->weight = tempnode->weight;
+		newnode->next = NULL;
+		if (head == NULL)
+			head = newnode;
+		if (tail == NULL)
+			tail = newnode;
+		else {
+			tail->next = newnode;
+			tail = newnode;
+		}
+		tempnode = tempnode->next;
+	}
+	return head;
+}
+
+
 int
 spell_is_known_word(spell_t *spell, const char *word, int ngram)
 {
@@ -674,18 +730,7 @@ spell_get_suggestions(spell_t * spell, char *word, int ngram)
 	word_list *tail;
 	lower(word);
 	candidates = edits1(word, 1);
-	char *soundex_code = soundex(word);
-	if (soundex_code != NULL) {
-		soundex_node.word = soundex_code;
-		soundexes = rb_tree_find_node(spell->soundex_tree, &soundex_node);
-		if (soundexes != NULL) {
-			tail = soundexes;
-			while (tail->next != NULL)
-				tail = tail->next;
-			tail->next = candidates;
-			candidates = tail;
-		}
-	}
+	char *soundex_code;
 	corrections = spell_get_corrections(spell, candidates, 1, ngram);
 	if (corrections == NULL) {
 		candidates2 = edits2(candidates);
@@ -693,9 +738,20 @@ spell_get_suggestions(spell_t * spell, char *word, int ngram)
 		free_word_list(candidates2);
 	}
 	free_word_list(candidates);
+	if (corrections == NULL) {
+		soundex_code = soundex(word);
+		if (soundex_code != NULL) {
+			soundex_node.word = soundex_code;
+			soundexes = rb_tree_find_node(spell->soundex_tree, &soundex_node);
+			if (soundexes != NULL) {
+				candidates = soundexes->next;
+				corrections = spell_get_corrections(spell, candidates, 1, ngram);
+			}
+		}
+		free(soundex_code);
+	}
 	return corrections;
 }
-
 
 
 int
