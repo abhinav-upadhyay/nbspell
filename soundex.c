@@ -20,7 +20,7 @@ main(int argc, char **argv)
 			warnx("No soundex code found for %s", dict[i++]);
 			continue;
 		}
-		fprintf(out, "%s\t%s\n", dict[i], soundex_code);
+		fprintf(out, "%s\t%s\n", soundex_code, dict[i]);
 		free(soundex_code);
 	}
 
