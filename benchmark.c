@@ -93,7 +93,7 @@ do_unigram(FILE *f)
 			continue;
 		}
 
-		char **corrections = spell_get_suggestions(spell, test, 1);
+		char **corrections = spell_get_suggestions(spell, test);
 		if (corrections == NULL) {
 			failed++;
 			printf("failed: test: %s\tanswer: %s\n", test, answer);
