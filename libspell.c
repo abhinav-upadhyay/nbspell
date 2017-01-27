@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2016 Abhinav Upadhyay <er.abhinav.upadhyay@gmail.com>
+ * Copyright (c) 2017 Abhinav Upadhyay <er.abhinav.upadhyay@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,11 +48,6 @@ typedef struct set {
 	char *a;
 	char *b;
 } set;
-
-/*
- * This implementation is Based on the edit distance or Levenshtein distance technique.
- * Explained by Peter Norvig in his post here: http://norvig.com/spell-correct.html
- */
 
 
 /*
@@ -121,6 +116,9 @@ add_candidate_node(char *candidate, word_list **candidates, word_list **tail, fl
  *      26 * n possible words
  *  4. Inserts: Insert an alphabet at each of the character positions (one at a
  *      time. 26 * (n + 1) possible words.
+ *
+ *   This implementation is Based on the edit distance or Levenshtein distance technique.
+ *   Explained by Peter Norvig in his post here: http://norvig.com/spell-correct.html
  */
 static word_list *
 edits1(char *word, size_t distance)
@@ -236,8 +234,13 @@ edits1(char *word, size_t distance)
 	return candidates;
 }
 
+
+/*
+ * Returns a list of words at an edit distance +1 than the words
+ * in the list passed through the parameter edits1_list
+ */
 static word_list *
-edits2(word_list *edits1_list)
+edits_plus_one(word_list *edits1_list)
 {
 	word_list *nodep = edits1_list;
 	word_list *edits2_list = NULL;
@@ -281,7 +284,7 @@ spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n)
 
 	size_t i = 0, corrections_count = 0;
 	size_t corrections_size = 16;
-	word_list *wc_array = emalloc(corrections_size * sizeof(*wc_array));
+	word_list *wl_array = emalloc(corrections_size * sizeof(*wl_array));
 	word_list *nodep = candidate_list;
 	float weight;
 
@@ -297,31 +300,31 @@ spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n)
 		if (tree_node) {
 			listnode.weight = tree_node->count * weight;
 			listnode.word = candidate;
-			wc_array[corrections_count++] = listnode;
+			wl_array[corrections_count++] = listnode;
 		} else
 			continue;
 		if (corrections_count == corrections_size - 1) {
 			corrections_size *= 2;
-			wc_array = erealloc(wc_array, corrections_size * sizeof(*wc_array));
+			wl_array = erealloc(wl_array, corrections_size * sizeof(*wl_array));
 		}
 	}
 
 	if (corrections_count == 0) {
-		free(wc_array);
+		free(wl_array);
 		return NULL;
 	}
 
 	size_t arraysize = n < corrections_count? n: corrections_count;
 	char **corrections = emalloc((arraysize + 1) * sizeof(*corrections));
 	corrections[arraysize] = NULL;
-	qsort(wc_array, corrections_count, sizeof(*wc_array), max_count);
+	qsort(wl_array, corrections_count, sizeof(*wl_array), max_count);
 	for (i = 0; i < arraysize; i++) {
-		if (wc_array[i].word) {
-			corrections[i] =  estrdup(wc_array[i].word);
-			//printf("%s %f\n", wc_array[i].word, wc_array[i].weight);
+		if (wl_array[i].word) {
+			corrections[i] =  estrdup(wl_array[i].word);
+			//printf("%s %f\n", wl_array[i].word, wl_array[i].weight);
 		}
 	}
-	free(wc_array);
+	free(wl_array);
 	return corrections;
 }
 
@@ -685,7 +688,7 @@ spell_get_suggestions(spell_t * spell, char *word)
 	candidates = edits1(word, 1);
 	corrections = spell_get_corrections(spell, candidates, 1);
 	if (corrections == NULL) {
-		candidates2 = edits2(candidates);
+		candidates2 = edits_plus_one(candidates);
 		corrections = spell_get_corrections(spell, candidates2, 1);
 		free_word_list(candidates2);
 	}
@@ -747,4 +750,47 @@ spell_destroy(spell_t * spell)
 		free_tree(spell->whitelist);
 	free(spell);
 
+}
+
+char *
+sanitize_string(char *s)
+{
+	size_t len = strlen(s);
+	int i = 0;
+	if (s[0] == '(' && s[len - 1] == ')') {
+		s[--len] = 0;
+		s++;
+		--len;
+	}
+	char *ret = malloc(len + 1);
+	memset(ret, 0, len + 1);
+	while (*s) {
+		/*
+		 * Detect apostrophe and stop copying characters immediately
+		 */
+		if ((*s == '\'') && (
+			!strncmp(s + 1, "s", 1) ||
+			!strncmp(s + 1, "es", 2) ||
+			!strncmp(s + 1, "m", 1) ||
+			!strncmp(s + 1, "d", 1) ||
+			!strncmp(s + 1, "ll", 2))) {
+			break;
+		}
+		/*
+		 * If the word contains a dot in between that suggests it is either
+		 * an abbreviation or somekind of a URL. Do not bother with such words.
+		 */
+		if (*s == '.') {
+			free(ret);
+			return NULL;
+		}
+		//Why bother with words which contain other characters or numerics ?
+		    if (!isalpha(*s)) {
+			free(ret);
+			return NULL;
+		}
+		ret[i++] = *s++;
+	}
+	ret[i] = 0;
+	return ret;
 }

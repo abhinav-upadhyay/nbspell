@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2016 Abhinav Upadhyay <er.abhinav.upadhyay@gmail.com>
+ * Copyright (c) 2017 Abhinav Upadhyay <er.abhinav.upadhyay@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,104 +41,90 @@
 static void
 usage(void)
 {
-	(void) fprintf(stderr, "Usage: wikipedia [-f test_file] [-n ngram]\n");
+	(void) fprintf(stderr, "Usage: spell [-i input_file] [-w whitelist]\n");
 	exit(1);
 }
 
 
 static void
-do_unigram(FILE *f)
+do_unigram(FILE *f, const char *whitelist_filepath)
 {
 
-	char *test;
-	char *answer;
-	char *tab;
+	char *word = NULL;
+	size_t wordsize = 0;
 	ssize_t bytes_read;
-	spell_t *spell = spell_init("dict/unigram.txt", NULL);
+	spell_t *spell = spell_init("dict/unigram.txt", whitelist_filepath);
 	char *line = NULL;
 	size_t linesize = 0;
 	word_count *wcnode;
 	word_count wc;
 	wc.count = 0;
 	char *sanitized_word = NULL;
-	size_t linecount = 0;
-	size_t corrects = 0;
-	size_t wrong = 0;
-	size_t failed = 0;
-	size_t five = 0;
-	size_t ten = 0;
-	size_t twentyfive = 0;
-	size_t fifty = 0;
 
 
 	while ((bytes_read = getline(&line, &linesize, f)) != -1) {
-		linecount++;
 		line[--bytes_read] = 0;
 		if (line[bytes_read] == '\r')
 			line[bytes_read] = 0;
-		test = line;
-		tab = strchr(line, '\t');
-		*tab = 0;
-		answer = tab + 1;
-		lower(answer);
-		lower(test);
-		if (spell_is_known_word(spell, test, 1)) {
-			if (strcmp(test, answer) == 0)
-				corrects++;
-			else {
-				wrong++;
-				printf("wrong: test: %s\t correction %s\t answer: %s\n", test, test, answer);
-			}
-			//printf("%s\t%s\n", test, test);
-			continue;
-		}
+		char *templine = line;
+		while (*templine) {
+			wordsize = strcspn(templine, " ");
+			templine[wordsize] = 0;
+			word = templine;
+			templine += wordsize + 1;
+			if (strlen(word) <= 1)
+				continue;
+			while (*templine == ' ')
+				templine++;
 
-		char **corrections = spell_get_suggestions(spell, test);
-		if (corrections == NULL) {
-			failed++;
-			printf("failed: test: %s\tanswer: %s\n", test, answer);
-			continue;
-		}
-
-		size_t i = 0;
-		int correct_found = 0;
-		while(corrections[i] != NULL) {
-			char *correction = corrections[i++];
-			if (strcmp(correction, answer) == 0) {
-				corrects++;
-				correct_found = 1;
-				//printf("%s\t%s\n", test, correction);
-				break;
+			lower(word);
+			sanitized_word = sanitize_string(word);
+			if (!sanitized_word || !sanitized_word[0]) {
+				free(sanitized_word);
+				continue;
 			}
+
+			if (spell_is_known_word(spell, sanitized_word, 1)) {
+				free(sanitized_word);
+				continue;
+			}
+
+			if (is_whitelisted_word(spell, sanitized_word)) {
+				free(sanitized_word);
+				continue;
+			}
+
+			char **corrections = spell_get_suggestions(spell, sanitized_word);
+			size_t i = 0;
+			while(corrections && corrections[i] != NULL) {
+				char *correction = corrections[i++];
+				printf("%s: %s\n", word, correction);
+			}
+			free_list(corrections);
+			free(sanitized_word);
 		}
-		if (!correct_found) {
-			printf("wrong: test: %s\t correction %s\t answer: %s\n", test, corrections[0], answer);
-			wrong++;
-		}
-		free_list(corrections);
 		free(line);
 		line = NULL;
 	}
 	free(line);
-	printf("corrects: %u\nwrongs: %u\nfailed: %u\n", corrects, wrong, failed);
 }
 
 int
 main(int argc, char **argv)
 {
-	long ngram = 1;
 	FILE *input = stdin;
+	char *whitelist_filepath = NULL;
 	int ch;
 
-	while ((ch = getopt(argc, argv, "f:n:")) != -1) {
+	while ((ch = getopt(argc, argv, "i:w:")) != -1) {
 		switch (ch) {
-		case 'f':
+		case 'i':
 			input = fopen(optarg, "r");
 			if (input == NULL)
 				err(EXIT_FAILURE, "Failed to open %s", optarg);
 			break;
-		case 'n':
-			ngram = strtol(optarg, NULL, 10);
+		case 'w':
+			whitelist_filepath = optarg;
 			break;
 		default:
 			usage();
@@ -146,8 +132,7 @@ main(int argc, char **argv)
 		}
 	}
 
-	if (ngram == 1)
-		do_unigram(input);
+	do_unigram(input, whitelist_filepath);
 	if (input != stdin)
 		fclose(input);
 	return 0;

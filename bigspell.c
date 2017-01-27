@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2016 Abhinav Upadhyay <er.abhinav.upadhyay@gmail.com>
+ * Copyright (c) 2017 Abhinav Upadhyay <er.abhinav.upadhyay@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,52 +41,8 @@
 static void
 usage(void)
 {
-	(void) fprintf(stderr, "Usage: spell2 [-f input_file] [-n ngram] [-w whitelist]\n");
+	(void) fprintf(stderr, "Usage: bigspell [-i input_file] [-n ngram] [-w whitelist]\n");
 	exit(1);
-}
-
-
-static char *
-sanitize_string(char *s)
-{
-	size_t len = strlen(s);
-	int i = 0;
-	if (s[0] == '(' && s[len - 1] == ')') {
-		s[--len] = 0;
-		s++;
-		--len;
-	}
-	char *ret = malloc(len + 1);
-	memset(ret, 0, len + 1);
-	while (*s) {
-		/*
-		 * Detect apostrophe and stop copying characters immediately
-		 */
-		if ((*s == '\'') && (
-			!strncmp(s + 1, "s", 1) ||
-			!strncmp(s + 1, "es", 2) ||
-			!strncmp(s + 1, "m", 1) ||
-			!strncmp(s + 1, "d", 1) ||
-			!strncmp(s + 1, "ll", 2))) {
-			break;
-		}
-		/*
-		 * If the word contains a dot in between that suggests it is either
-		 * an abbreviation or somekind of a URL. Do not bother with such words.
-		 */
-		if (*s == '.') {
-			free(ret);
-			return NULL;
-		}
-		//Why bother with words which contain other characters or numerics ?
-		    if (!isalpha(*s)) {
-			free(ret);
-			return NULL;
-		}
-		ret[i++] = *s++;
-	}
-	ret[i] = 0;
-	return ret;
 }
 
 static void
@@ -206,87 +162,19 @@ do_bigram(FILE *inputf, const char *whitelist_filepath)
 	free(line);
 }
 
-
-static void
-do_unigram(FILE *f, const char *whitelist_filepath)
-{
-
-	char *word = NULL;
-	size_t wordsize = 0;
-	ssize_t bytes_read;
-	spell_t *spell = spell_init("dict/unigram.txt", whitelist_filepath);
-	char *line = NULL;
-	size_t linesize = 0;
-	word_count *wcnode;
-	word_count wc;
-	wc.count = 0;
-	char *sanitized_word = NULL;
-
-
-	while ((bytes_read = getline(&line, &linesize, f)) != -1) {
-		line[--bytes_read] = 0;
-		if (line[bytes_read] == '\r')
-			line[bytes_read] = 0;
-		char *templine = line;
-		while (*templine) {
-			wordsize = strcspn(templine, " ");
-			templine[wordsize] = 0;
-			word = templine;
-			templine += wordsize + 1;
-			if (strlen(word) <= 1)
-				continue;
-			while (*templine == ' ')
-				templine++;
-
-			lower(word);
-			sanitized_word = sanitize_string(word);
-			if (!sanitized_word || !sanitized_word[0]) {
-				free(sanitized_word);
-				continue;
-			}
-
-			if (spell_is_known_word(spell, sanitized_word, 1)) {
-				free(sanitized_word);
-				continue;
-			}
-
-			if (is_whitelisted_word(spell, sanitized_word)) {
-				free(sanitized_word);
-				continue;
-			}
-
-			char **corrections = spell_get_suggestions(spell, sanitized_word);
-			size_t i = 0;
-			while(corrections && corrections[i] != NULL) {
-				char *correction = corrections[i++];
-				printf("%s: %s\n", word, correction);
-			}
-			free_list(corrections);
-			free(sanitized_word);
-		}
-		free(line);
-		line = NULL;
-	}
-	free(line);
-}
-
 int
 main(int argc, char **argv)
 {
-	long ngram = 1;
 	FILE *input = stdin;
 	char *whitelist_filepath = NULL;
 	int ch;
 
-	while ((ch = getopt(argc, argv, "f:n:w:")) != -1) {
+	while ((ch = getopt(argc, argv, "i:w:")) != -1) {
 		switch (ch) {
-		case 'f':
+		case 'i':
 			input = fopen(optarg, "r");
 			if (input == NULL)
 				err(EXIT_FAILURE, "Failed to open %s", optarg);
-			break;
-		case 'n':
-			ngram = strtol(optarg, NULL, 10);
 			break;
 		case 'w':
 			whitelist_filepath = optarg;
@@ -297,10 +185,7 @@ main(int argc, char **argv)
 		}
 	}
 
-	if (ngram == 1)
-		do_unigram(input, whitelist_filepath);
-	if (ngram == 2)
-		do_bigram(input, whitelist_filepath);
+	do_bigram(input, whitelist_filepath);
 	if (input != stdin)
 		fclose(input);
 	return 0;
