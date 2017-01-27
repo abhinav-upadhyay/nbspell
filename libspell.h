@@ -35,5 +35,6 @@ char *lower(char *);
 int is_whitelisted_word(spell_t *, const char *);
 char *soundex(const char *);
 void print_edits(char *);
+void spell_destroy(spell_t *);
 
 #endif

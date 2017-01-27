@@ -45,7 +45,6 @@ typedef struct word_list {
 	rb_node_t rbtree;
 } word_list;
 
-
 /*
  * This implementation is Based on the edit distance or Levenshtein distance technique.
  * Explained by Peter Norvig in his post here: http://norvig.com/spell-correct.html
@@ -410,6 +409,43 @@ compare_listnodes(void *context, const void *node1, const void *node2)
 	return strcmp(wl1->word, wl2->word);
 }
 
+static int
+parse_file_and_generate_tree(FILE *f, rb_tree_t *tree)
+{
+	if (f == NULL)
+		return -1;
+
+	char *word = NULL;
+	char *line = NULL;
+	size_t linesize = 0;
+	size_t wordsize = 0;
+	ssize_t bytes_read;
+	word_count *wcnode;
+	word_count wc;
+	wc.count = 0;
+	while ((bytes_read = getline(&line, &linesize, f)) != -1) {
+		line[bytes_read - 1] = 0;
+		char *templine = line;
+		char *tabindex = strchr(templine, '\t');
+		if (tabindex == NULL) {
+			free(line);
+			return -1;
+		}
+		tabindex[0] = 0;
+		word = estrdup(templine);
+		lower(word);
+		templine = tabindex + 1;
+		wcnode = emalloc(sizeof(*wcnode));
+		wcnode->word = word;
+		wcnode->count = strtol(templine, NULL, 10);
+		rb_tree_insert_node(tree, wcnode);
+		free(line);
+		line = NULL;
+	}
+	free(line);
+	return 0;
+}
+
 spell_t *
 spell_init(const char *dictionary_path, const char *whitelist_filepath)
 {
@@ -417,16 +453,17 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 	if (f == NULL)
 		return NULL;
 
-	spell_t *spellt;
-	static rb_tree_t *words_tree;
-	static rb_tree_t *ngrams_tree;
-	static rb_tree_t *soundex_tree;
-	static const rb_tree_ops_t tree_ops = {
+	const rb_tree_ops_t tree_ops = {
 		.rbto_compare_nodes =  compare_words,
 		.rbto_compare_key = compare_words,
 		.rbto_node_offset = offsetof(word_count, rbtree),
 		.rbto_context = NULL
 	};
+
+	spell_t *spellt;
+	rb_tree_t *words_tree;
+	rb_tree_t *ngrams_tree;
+	rb_tree_t *soundex_tree;
 
 	words_tree = emalloc(sizeof(*words_tree));
 	rb_tree_init(words_tree, &tree_ops);
@@ -444,65 +481,27 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 	word_count *wcnode;
 	word_count wc;
 	wc.count = 0;
-	char *sanitized_word = NULL;
-	while ((bytes_read = getline(&line, &linesize, f)) != -1) {
-		line[bytes_read - 1] = 0;
-		char *templine = line;
-		char *tabindex = strchr(templine, '\t');
-		if (tabindex == NULL) {
-			free(words_tree);
-			free(spellt);
-			fclose(f);
-			free(line);
-			return NULL;
-		}
-		tabindex[0] = 0;
-		word = estrdup(templine);
-		lower(word);
-		templine = tabindex + 1;
-		wcnode = emalloc(sizeof(*wcnode));
-		wcnode->word = word;
-		wcnode->count = strtol(templine, NULL, 10);
-		rb_tree_insert_node(words_tree, wcnode);
-		free(line);
-		line = NULL;
+	if ((parse_file_and_generate_tree(f, words_tree)) < 0) {
+		spell_destroy(spellt);
+		fclose(f);
+		return NULL;
 	}
-	free(line);
-	line = NULL;
 	fclose(f);
 
 	if ((f = fopen("dict/bigram.txt", "r")) != NULL) {
 		ngrams_tree = emalloc(sizeof(*ngrams_tree));
 		rb_tree_init(ngrams_tree, &tree_ops);
 		spellt->ngrams_tree = ngrams_tree;
-		while ((bytes_read = getline(&line, &linesize, f)) != -1) {
-			line[bytes_read - 1] = 0;
-			char *templine = line;
-			char *tabindex = strchr(templine, '\t');
-			if (tabindex == NULL) {
-				free(ngrams_tree);
-				free(spellt);
-				fclose(f);
-				free(line);
-				return spellt;
-			}
-			tabindex[0] = 0;
-			word = estrdup(templine);
-			templine = tabindex + 1;
-			wcnode = emalloc(sizeof(*wcnode));
-			wcnode->word = word;
-			wcnode->count = strtol(templine, NULL, 10);
-			rb_tree_insert_node(ngrams_tree, wcnode);
-			free(line);
-			line = NULL;
+		if ((parse_file_and_generate_tree(f, ngrams_tree)) < 0) {
+			spell_destroy(spellt);
+			fclose(f);
+			return NULL;
 		}
-		free(line);
-		line = NULL;
 		fclose(f);
 	}
 
 	if ((f = fopen("dict/soundex.txt", "r")) != NULL) {
-		static const rb_tree_ops_t soundex_tree_ops = {
+		const rb_tree_ops_t soundex_tree_ops = {
 			.rbto_compare_nodes =  compare_listnodes,
 			.rbto_compare_key = compare_listnodes,
 			.rbto_node_offset = offsetof(word_list, rbtree),
@@ -560,7 +559,7 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 	if (whitelist_filepath == NULL || (f = fopen(whitelist_filepath, "r")) == NULL)
 		return spellt;
 
-	static rb_tree_t *whitelist;
+	rb_tree_t *whitelist;
 	whitelist = emalloc(sizeof(*whitelist));
 	rb_tree_init(whitelist, &tree_ops);
 	spellt->whitelist = whitelist;
@@ -791,4 +790,30 @@ print_edits(char *word)
 		node = node->next;
 	}
 	free_word_list(edits);
+}
+
+static void
+free_tree(rb_tree_t * tree)
+{
+	word_count *wc;
+	while ((wc = RB_TREE_MIN(tree)) != NULL) {
+		rb_tree_remove_node(tree, wc);
+		free(wc->word);
+		free(wc);
+	}
+	free(tree);
+}
+
+void
+spell_destroy(spell_t * spell)
+{
+	free_tree(spell->dictionary);
+
+	if (spell->ngrams_tree != NULL)
+		free_tree(spell->ngrams_tree);
+
+	if (spell->whitelist != NULL)
+		free_tree(spell->whitelist);
+	free(spell);
+
 }
