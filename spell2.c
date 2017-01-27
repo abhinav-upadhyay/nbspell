@@ -148,7 +148,7 @@ do_bigram(FILE *inputf, const char *whitelist_filepath)
 						}*/
 			lower(word);
 
-			if (is_known_word(word))
+			if (spell_is_known_word(spellt, word, 1))
 				continue;
 
 			if (is_whitelisted_word(spellt, word)) {
@@ -175,7 +175,7 @@ do_bigram(FILE *inputf, const char *whitelist_filepath)
 				continue;
 			}
 
-			char **suggestions = spell(word);
+			char **suggestions = spell_get_suggestions(spellt, word, 1);
 			int max_index = -1;
 			size_t max_frequency = 0;
 			for (i = 0; suggestions && suggestions[i]; i++) {
