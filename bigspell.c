@@ -41,7 +41,7 @@
 static void
 usage(void)
 {
-	(void) fprintf(stderr, "Usage: spell [-i input_file] [-w whitelist]\n");
+	(void) fprintf(stderr, "Usage: bigspell [-i input_file] [-n ngram] [-w whitelist]\n");
 	exit(1);
 }
 
@@ -90,61 +90,115 @@ sanitize_string(char *s)
 }
 
 static void
-do_unigram(FILE *f, const char *whitelist_filepath)
+do_bigram(FILE *inputf, const char *whitelist_filepath)
 {
 
 	char *word = NULL;
 	size_t wordsize = 0;
-	ssize_t bytes_read;
-	spell_t *spell = spell_init("dict/unigram.txt", whitelist_filepath);
+	ssize_t bytesread;
+	spell_t *spellt = spell_init("dict/bigram.txt", whitelist_filepath);
 	char *line = NULL;
 	size_t linesize = 0;
+	ssize_t bytes_read;
 	word_count *wcnode;
 	word_count wc;
 	wc.count = 0;
 	char *sanitized_word = NULL;
+	char *prevword = NULL;
+	int sentence_end = 0;
+	char *bigram_word = NULL;
+	char *correction = NULL;
+	size_t i;
 
-
-	while ((bytes_read = getline(&line, &linesize, f)) != -1) {
+	while ((bytes_read = getline(&line, &linesize, inputf)) != -1) {
 		line[--bytes_read] = 0;
 		if (line[bytes_read] == '\r')
 			line[bytes_read] = 0;
 		char *templine = line;
 		while (*templine) {
-			wordsize = strcspn(templine, " ");
+			if (sentence_end) {
+				sentence_end = 0;
+				prevword = NULL;
+			}
+			wordsize = strcspn(templine, "()<>@?\'\",;-:. \t");
+			switch (templine[wordsize]) {
+				case '?':
+				case '.':
+				case ';':
+				case '-':
+				case '\t':
+				case '(':
+				case ')':
+					sentence_end = 1;
+					break;
+			}
+
 			templine[wordsize] = 0;
+			prevword = word;
 			word = templine;
 			templine += wordsize + 1;
 			if (strlen(word) <= 1)
 				continue;
 			while (*templine == ' ')
 				templine++;
-
+			/*			sanitized_word = sanitize_string(word);
+						if (!sanitized_word || !sanitized_word[0]) {
+						free(sanitized_word);
+						continue;
+						}*/
 			lower(word);
-			sanitized_word = sanitize_string(word);
-			if (!sanitized_word || !sanitized_word[0]) {
-				free(sanitized_word);
+
+			if (spell_is_known_word(spellt, word, 1))
+				continue;
+
+			if (is_whitelisted_word(spellt, word)) {
+				sentence_end = 1;
 				continue;
 			}
 
-			if (spell_is_known_word(spell, sanitized_word, 1)) {
-				free(sanitized_word);
+			if (correction != NULL) {
+				free(correction);
+				correction = NULL;
+			}
+
+			/*
+			 * First word of the sentence
+			 */
+			if (prevword == NULL) {
+				char **s = spell_get_suggestions(spellt, word, 1);
+				if (s != NULL && s[0] != NULL)
+					correction = estrdup(s[0]);
+				free_list(s);
+				if (correction != NULL)
+					printf("%s: %s\n", word, correction);
+				word = correction;
 				continue;
 			}
 
-			if (is_whitelisted_word(spell, sanitized_word)) {
-				free(sanitized_word);
-				continue;
+			char **suggestions = spell_get_suggestions(spellt, word, 1);
+			int max_index = -1;
+			size_t max_frequency = 0;
+			for (i = 0; suggestions && suggestions[i]; i++) {
+				easprintf(&bigram_word, "%s %s", prevword, suggestions[i]);
+				int suggestion_frequency = spell_is_known_word(spellt, bigram_word, 2);
+				if (suggestion_frequency > max_frequency) {
+					max_frequency = suggestion_frequency;
+					max_index = i;
+				}
+				free(bigram_word);
+				bigram_word = NULL;
 			}
 
-			char **corrections = spell_get_suggestions(spell, sanitized_word, 1);
-			size_t i = 0;
-			while(corrections && corrections[i] != NULL) {
-				char *correction = corrections[i++];
-				printf("%s: %s\n", word, correction);
-			}
-			free_list(corrections);
-			free(sanitized_word);
+			/* If no bigrams found, check the unigram index for this word */
+			if (max_index == -1) {
+				char **suggestions2 = spell_get_suggestions(spellt, word, 1);
+				if (suggestions2 && suggestions2[0])
+					printf("%s: %s\n", word, suggestions2[0]);
+				free(suggestions2);
+			} else
+				printf("%s: %s\n", word, suggestions[max_index]);
+
+			free_list(suggestions);
 		}
 		free(line);
 		line = NULL;
@@ -175,7 +229,7 @@ main(int argc, char **argv)
 		}
 	}
 
-	do_unigram(input, whitelist_filepath);
+	do_bigram(input, whitelist_filepath);
 	if (input != stdin)
 		fclose(input);
 	return 0;
