@@ -47,7 +47,7 @@ usage(void)
 
 
 static void
-do_unigram(FILE *f, const char *whitelist_filepath)
+do_unigram(FILE *f, const char *whitelist_filepath, size_t nsuggestions)
 {
 
 	char *word = NULL;
@@ -94,7 +94,7 @@ do_unigram(FILE *f, const char *whitelist_filepath)
 				continue;
 			}
 
-			char **corrections = spell_get_suggestions(spell, sanitized_word);
+			char **corrections = spell_get_suggestions(spell, sanitized_word, nsuggestions);
 			size_t i = 0;
 			while(corrections && corrections[i] != NULL) {
 				char *correction = corrections[i++];
@@ -115,9 +115,13 @@ main(int argc, char **argv)
 	FILE *input = stdin;
 	char *whitelist_filepath = NULL;
 	int ch;
+	size_t nsuggestions = 1;
 
-	while ((ch = getopt(argc, argv, "i:w:")) != -1) {
+	while ((ch = getopt(argc, argv, "c:i:w:")) != -1) {
 		switch (ch) {
+		case 'c':
+			nsuggestions = strtol(optarg, NULL, 10);
+			break;
 		case 'i':
 			input = fopen(optarg, "r");
 			if (input == NULL)
@@ -132,7 +136,7 @@ main(int argc, char **argv)
 		}
 	}
 
-	do_unigram(input, whitelist_filepath);
+	do_unigram(input, whitelist_filepath, nsuggestions);
 	if (input != stdin)
 		fclose(input);
 	return 0;

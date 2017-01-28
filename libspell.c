@@ -677,7 +677,7 @@ spell_is_known_word(spell_t *spell, const char *word, int ngram)
 }
 
 char **
-spell_get_suggestions(spell_t * spell, char *word)
+spell_get_suggestions(spell_t * spell, char *word, size_t nsuggestions)
 {
 	char **corrections = NULL;
 	word_list *candidates;
@@ -686,18 +686,18 @@ spell_get_suggestions(spell_t * spell, char *word)
 	word_list *tail;
 	lower(word);
 	candidates = edits1(word, 1);
-	corrections = spell_get_corrections(spell, candidates, 1);
+	corrections = spell_get_corrections(spell, candidates, nsuggestions);
 	if (corrections == NULL) {
 		candidates2 = edits_plus_one(candidates);
-		corrections = spell_get_corrections(spell, candidates2, 1);
+		corrections = spell_get_corrections(spell, candidates2, nsuggestions);
 		free_word_list(candidates2);
 	}
 	free_word_list(candidates);
 	if (corrections == NULL) {
 		soundexes = get_soundex_list(spell, word);
 		if (soundexes != NULL) {
-			corrections = spell_get_corrections(spell, soundexes, 1);
-			//free_word_list(soundexes);
+			corrections = spell_get_corrections(spell, soundexes, nsuggestions);
+			free_word_list(soundexes);
 		}
 	}
 	return corrections;

@@ -51,7 +51,7 @@ typedef struct spell_t {
 void free_list(char **);
 spell_t *spell_init(const char *, const char *);
 int spell_is_known_word(spell_t *, const char *, int);
-char **spell_get_suggestions(spell_t *, char *);
+char **spell_get_suggestions(spell_t *, char *, size_t);
 int is_whitelisted_word(spell_t *, const char *);
 char *soundex(const char *);
 void spell_destroy(spell_t *);

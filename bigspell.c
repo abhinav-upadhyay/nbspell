@@ -46,7 +46,7 @@ usage(void)
 }
 
 static void
-do_bigram(FILE *inputf, const char *whitelist_filepath)
+do_bigram(FILE *inputf, const char *whitelist_filepath, size_t nsuggestions)
 {
 
 	char *word = NULL;
@@ -121,7 +121,7 @@ do_bigram(FILE *inputf, const char *whitelist_filepath)
 			 * First word of the sentence
 			 */
 			if (prevword == NULL) {
-				char **s = spell_get_suggestions(spellt, word);
+				char **s = spell_get_suggestions(spellt, word, nsuggestions);
 				if (s != NULL && s[0] != NULL)
 					correction = estrdup(s[0]);
 				free_list(s);
@@ -131,7 +131,7 @@ do_bigram(FILE *inputf, const char *whitelist_filepath)
 				continue;
 			}
 
-			char **suggestions = spell_get_suggestions(spellt, word);
+			char **suggestions = spell_get_suggestions(spellt, word, nsuggestions);
 			int max_index = -1;
 			size_t max_frequency = 0;
 			for (i = 0; suggestions && suggestions[i]; i++) {
@@ -147,7 +147,7 @@ do_bigram(FILE *inputf, const char *whitelist_filepath)
 
 			/* If no bigrams found, check the unigram index for this word */
 			if (max_index == -1) {
-				char **suggestions2 = spell_get_suggestions(spellt, word);
+				char **suggestions2 = spell_get_suggestions(spellt, word, nsuggestions);
 				if (suggestions2 && suggestions2[0])
 					printf("%s: %s\n", word, suggestions2[0]);
 				free(suggestions2);
@@ -169,8 +169,13 @@ main(int argc, char **argv)
 	char *whitelist_filepath = NULL;
 	int ch;
 
-	while ((ch = getopt(argc, argv, "i:w:")) != -1) {
+	size_t nsuggestions = 1;
+
+	while ((ch = getopt(argc, argv, "c:i:w:")) != -1) {
 		switch (ch) {
+		case 'c':
+			nsuggestions = strtol(optarg, NULL, 10);
+			break;
 		case 'i':
 			input = fopen(optarg, "r");
 			if (input == NULL)
@@ -185,7 +190,7 @@ main(int argc, char **argv)
 		}
 	}
 
-	do_bigram(input, whitelist_filepath);
+	do_bigram(input, whitelist_filepath, nsuggestions);
 	if (input != stdin)
 		fclose(input);
 	return 0;
