@@ -234,8 +234,13 @@ edits1(char *word, size_t distance)
 	return candidates;
 }
 
+
+/*
+ * Returns a list of words at an edit distance +1 than the words
+ * in the list passed through the parameter edits1_list
+ */
 static word_list *
-edits2(word_list *edits1_list)
+edits_plus_one(word_list *edits1_list)
 {
 	word_list *nodep = edits1_list;
 	word_list *edits2_list = NULL;
@@ -670,7 +675,7 @@ spell_get_suggestions(spell_t * spell, char *word, int ngram)
 	char *soundex_code;
 	corrections = spell_get_corrections(spell, candidates, 1, ngram);
 	if (corrections == NULL) {
-		candidates2 = edits2(candidates);
+		candidates2 = edits_plus_one(candidates);
 		corrections = spell_get_corrections(spell, candidates2, 1, ngram);
 		free_word_list(candidates2);
 	}
