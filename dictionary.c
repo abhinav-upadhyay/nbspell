@@ -1,16 +1,54 @@
+/*-
+ * Copyright (c) 2017 Abhinav Upadhyay <er.abhinav.upadhyay@gmail.com>
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE
+ * COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
+
 #include <ctype.h>
 #include <err.h>
 #include<stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <util.h>
 
 #include <sys/queue.h>
 #include <sys/rbtree.h>
 #include "libspell.h"
+#include "spellutils.h"
 
 #include "websters.c"
+
+static void
+usage(void)
+{
+	fprintf(stderr, "dictionary [-i input] [-n ngram] [-o output]\n");
+	exit(1);
+}
 
 static char *
 sanitize_string(char *s)
@@ -56,7 +94,7 @@ sanitize_string(char *s)
 }
 
 static void
-parse_file(FILE * f, long ngram)
+parse_file(FILE * f, FILE * output, long ngram)
 {
 
 	rb_tree_t words_tree;
@@ -179,36 +217,61 @@ parse_file(FILE * f, long ngram)
 		linesize = 0;
 	}
 
-	FILE *out = fopen("./out", "w");
-	if (out == NULL)
-		err(EXIT_FAILURE, "Failed to open dictionary.out");
 
 	word_count *tmp;
 	RB_TREE_FOREACH(tmp, &words_tree)
-	    fprintf(out, "%s\t%d\n", tmp->word, tmp->count);
-	size_t i;
+	    fprintf(output, "%s\t%d\n", tmp->word, tmp->count);
+
+	if (ngram != 1)
+		return;
+
+	/* For unigrams, the rare words which were not found in
+	 * the corpus, write them with frequency of 1. Better
+	 * than skipping them altogether.
+	 */
+	int i;
 	for (i = 0; i < sizeof(dict)/sizeof(dict[0]); i++) {
 		wc.word = (char *) dict[i];
 		void *node = rb_tree_find_node(&words_tree, &wc);
 		if (node == NULL)
-			fprintf(out, "%s\t%d\n", dict[i], 1);
+			fprintf(output, "%s\t%d\n", dict[i], 1);
 	}
-	fclose(out);
 }
 
 
 int
 main(int argc, char **argv)
 {
-	char *path = argv[1];
+	FILE *inputfile = stdin;
+	FILE *outputfile = stdout;
 	long ngram = 1;
-	if (argc >= 2) {
-		ngram = strtol(argv[2], NULL, 10);
+	int ch;
+
+	while ((ch = getopt(argc, argv, "i:n:o:")) != -1) {
+		switch (ch) {
+		case 'i':
+			inputfile = fopen(optarg, "r");
+			if (inputfile == NULL)
+				err(EXIT_FAILURE, "Failed to open %s", optarg);
+			break;
+		case 'n':
+			ngram = strtol(optarg, NULL, 10);
+			break;
+		case 'o':
+			outputfile = fopen(optarg, "w");
+			if (outputfile == NULL)
+				err(EXIT_FAILURE, "Failed to open %s for writing", optarg);
+			break;
+		default:
+			usage();
+			break;
+		}
 	}
-	FILE *f = fopen(path, "r");
-	if (f == NULL)
-		err(EXIT_FAILURE, "Failed to open %s", path);
-	parse_file(f, ngram);
-	fclose(f);
+	parse_file(inputfile, outputfile, ngram);
+	if (inputfile != stdin)
+		fclose(inputfile);
+	fclose(inputfile);
+	if (outputfile != stdout)
+		fclose(outputfile);
 	return 0;
 }
