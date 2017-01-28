@@ -1,11 +1,10 @@
 .include <bsd.own.mk>
 
-PROGS=			dictionary spell bigspell benchmark soundex 
+PROGS=			dictionary spell bigspell soundex 
 SRCS.spell=		spell.c libspell.c
 SRCS.bigspell=		bigspell.c libspell.c
 SRCS.dictionary=	dictionary.c libspell.c spellutils.c
 SRCS.soundex=	soundex.c libspell.c
-SRCS.benchmark=	benchmark.c libspell.c
 
 LDADD+= -lutil
 
