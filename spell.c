@@ -96,9 +96,15 @@ do_unigram(FILE *f, const char *whitelist_filepath, size_t nsuggestions)
 
 			char **corrections = spell_get_suggestions(spell, sanitized_word, nsuggestions);
 			size_t i = 0;
-			while(corrections && corrections[i] != NULL) {
-				char *correction = corrections[i++];
-				printf("%s: %s\n", word, correction);
+			if (corrections) {
+				printf("%s: ", word);
+				while(corrections[i] != NULL) {
+					if (i > 0)
+						printf("%s", ",");
+					char *correction = corrections[i++];
+					printf("%s", correction);
+				}
+				printf("\n");
 			}
 			free_list(corrections);
 			free(sanitized_word);
