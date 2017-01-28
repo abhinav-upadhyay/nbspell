@@ -20,9 +20,9 @@ def parse_testdata(filepath):
     return testdata
 
 
-def get_corrections(tests):
+def get_corrections(tests, count):
     predicted_data = {}
-    proc = subprocess.Popen(['./spell'], stdin=subprocess.PIPE,
+    proc = subprocess.Popen(['./spell', '-c', count], stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err  = proc.communicate(input=tests)
     for line in out.split('\n'):
@@ -31,12 +31,8 @@ def get_corrections(tests):
         words = line.split()
         test = words[0]
         test = test[:-1]
-        if test == 'pinoneered':
-            print line
-        answer = words[-1]
-        if test in predicted_data:
-            print 'duplicate %s' % test
-        predicted_data[test] = answer
+        answers = words[-1].split(',')
+        predicted_data[test] = answers
     return predicted_data    
 
 
@@ -46,22 +42,25 @@ def main():
     nfailed = 0
     argparser = argparse.ArgumentParser()
     argparser.add_argument('-i', '--input', help='path to the test data file', required=True)
+    argparser.add_argument('-c', '--count', help='Number of suggestions to generate', default='1') 
     args = argparser.parse_args()
     starttime = time.time()
     testdata = parse_testdata(args.input)
     inputdata = '\n'.join(testdata.keys()) + '\n'
-    predicted_data = get_corrections(inputdata)
+    predicted_data = get_corrections(inputdata, args.count)
     for test,answers in testdata.iteritems():
-        correction = predicted_data.get(test)
-        if correction is None or correction == '':
+        corrections = predicted_data.get(test)
+        if corrections is None or len(corrections) == 0:
             nfailed += 1
             print 'Failed to generate any prediction for %s' % test
             continue
-        if correction in answers:
-            ncorrects += 1
-            continue
-        nwrongs += 1
-        print 'Wrong prediction for %s, prediction: %s, expected: %s' % (test, correction, ','.join(answers))
+        for correction in corrections:
+            if correction in answers:
+                ncorrects += 1
+                break
+        else:
+            nwrongs += 1
+            print 'Wrong prediction for %s, prediction: %s, expected: %s' % (test, correction, ','.join(answers))
     endtime = time.time()    
 
     print 'Tests finished in %f minutes' % ((endtime - starttime) / 60.0)
