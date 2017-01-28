@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2016 Abhinav Upadhyay <er.abhinav.upadhyay@gmail.com>
+ * Copyright (c) 2017 Abhinav Upadhyay <er.abhinav.upadhyay@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -278,9 +278,9 @@ main(int argc, char **argv)
 	char *whitelist_filepath = NULL;
 	int ch;
 
-	while ((ch = getopt(argc, argv, "f:n:w:")) != -1) {
+	while ((ch = getopt(argc, argv, "i:n:w:")) != -1) {
 		switch (ch) {
-		case 'f':
+		case 'i':
 			input = fopen(optarg, "r");
 			if (input == NULL)
 				err(EXIT_FAILURE, "Failed to open %s", optarg);
