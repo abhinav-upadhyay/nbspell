@@ -41,7 +41,7 @@
 static void
 usage(void)
 {
-	(void) fprintf(stderr, "Usage: spell2 [-f input_file] [-n ngram] [-w whitelist]\n");
+	(void) fprintf(stderr, "Usage: spell [-i input_file] [-n ngram] [-w whitelist]\n");
 	exit(1);
 }
 

@@ -1,7 +1,7 @@
 .include <bsd.own.mk>
 
-PROGS=			dictionary spell2 benchmark  soundex 
-SRCS.spell2=		spell2.c libspell.c
+PROGS=			dictionary spell benchmark  soundex 
+SRCS.spell=		spell.c libspell.c
 SRCS.dictionary=	dictionary.c libspell.c spellutils.c
 SRCS.soundex=	soundex.c libspell.c
 SRCS.benchmark=	benchmark.c libspell.c
