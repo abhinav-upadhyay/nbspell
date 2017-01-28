@@ -49,11 +49,6 @@ typedef struct set {
 	char *b;
 } set;
 
-/*
- * This implementation is Based on the edit distance or Levenshtein distance technique.
- * Explained by Peter Norvig in his post here: http://norvig.com/spell-correct.html
- */
-
 
 /*
  * Converts a word to lower case
@@ -121,6 +116,9 @@ add_candidate_node(char *candidate, word_list **candidates, word_list **tail, fl
  *      26 * n possible words
  *  4. Inserts: Insert an alphabet at each of the character positions (one at a
  *      time. 26 * (n + 1) possible words.
+ *
+ *   This implementation is Based on the edit distance or Levenshtein distance technique.
+ *   Explained by Peter Norvig in his post here: http://norvig.com/spell-correct.html
  */
 static word_list *
 edits1(char *word, size_t distance)
