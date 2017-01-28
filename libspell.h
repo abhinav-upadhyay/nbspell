@@ -28,5 +28,5 @@ char *soundex(const char *);
 void spell_destroy(spell_t *);
 int compare_words(void *, const void *, const void *);
 char *lower(char *);
-
+char * sanitize_string(char *);
 #endif
