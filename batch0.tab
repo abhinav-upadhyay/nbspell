@@ -355,6 +355,7 @@ arbitarily	arbitrarily
 arbitary	arbitrary
 archaelogists	archaeologists
 archaelogy	archaeology
+archaoelogy	archeology
 archaoelogy	archaeology
 archaology	archeology
 archaology	archaeology
@@ -534,6 +535,7 @@ begginings	beginnings
 beggins	begins
 begining	beginning
 beginnig	beginning
+behavour	behavior
 behavour	behaviour
 beleagured	beleaguered
 beleif	belief
@@ -638,8 +640,6 @@ cannnot	cannot
 cannonical	canonical
 cannotation	connotation
 cannotations	connotations
-cant	cannot
-cant	can't
 caost	coast
 caperbility	capability
 capible	capable
@@ -1016,7 +1016,11 @@ coucil	council
 coudl	could
 coudl	cloud
 councellor	councillor
+councellor	counselor
+councellor	councilor
 councellors	councillors
+councellors	counselors
+councellors	councilors
 counries	countries
 countains	contains
 countires	countries
@@ -1063,6 +1067,7 @@ curriculem	curriculum
 cxan	cyan
 cyclinder	cylinder
 dael	deal
+dael	dial
 dalmation	dalmatian
 damenor	demeanor
 Dardenelles	Dardanelles
@@ -1185,7 +1190,6 @@ dicovering	discovering
 dicovers	discovers
 dicovery	discovery
 dicussed	discussed
-didnt	didn't
 diea	idea
 diea	die
 dieing	dying
@@ -1282,13 +1286,11 @@ docrines	doctrines
 doctines	doctrines
 documenatry	documentary
 doens	does
-doesnt	doesn't
 doign	doing
 dominaton	domination
 dominent	dominant
 dominiant	dominant
 donig	doing
-dosen't	doesn't
 doub	doubt
 doub	daub
 doulbe	double
@@ -1764,6 +1766,8 @@ gropu	group
 grwo	grow
 Guaduloupe	Guadalupe
 Guaduloupe	Guadeloupe
+Guadulupe	Guadalupe
+Guadulupe	Guadeloupe
 guage	gauge
 guarentee	guarantee
 guarenteed	guaranteed
@@ -1815,7 +1819,6 @@ harrasses	harassed
 harrassing	harassing
 harrassment	harassment
 harrassments	harassments
-hasnt	hasn't
 haviest	heaviest
 headquater	headquarter
 headquarer	headquarter
@@ -1823,7 +1826,6 @@ headquatered	headquartered
 headquaters	headquarters
 healthercare	healthcare
 heared	heard
-heathy	healthy
 Heidelburg	Heidelberg
 heigher	higher
 heirarchy	hierarchy
@@ -1882,6 +1884,7 @@ hting	thing
 htink	think
 htis	this
 humer	humor
+humer	humour
 humerous	humorous
 humerous	humerus
 huminoid	humanoid
@@ -1928,7 +1931,9 @@ ilogical	illogical
 imagenary	imaginary
 imagin	imagine
 imaginery	imaginary
-imanent	immanent
+imaginery	imagery
+imanent	eminent
+imanent	imminent
 imcomplete	incomplete
 imediately	immediately
 imense	immense
@@ -1938,7 +1943,9 @@ imigrated	emigrated
 imigrated	immigrated
 imigration	emigration
 imigration	immigration
+iminent	eminent
 iminent	imminent
+iminent	immanent
 immediatley	immediately
 immediatly	immediately
 immidately	immediately
@@ -2139,7 +2146,6 @@ irrelevent	irrelevant
 irreplacable	irreplaceable
 irresistable	irresistible
 irresistably	irresistibly
-isnt	isn't
 Israelies	Israelis
 issueing	issuing
 itnroduced	introduced
@@ -2177,6 +2183,7 @@ konws	knows
 kwno	know
 labatory	lavatory
 labatory	laboratory
+labled	labelled
 labled	labeled
 labratory	laboratory
 laguage	language
@@ -2231,8 +2238,11 @@ linnaena	linnaean
 lippizaner	lipizzaner
 liquify	liquefy
 liscense	license
+liscense	licence
+lisence	license
 lisence	licence
 lisense	license
+lisense	licence
 listners	listeners
 litature	literature
 literture	literature
@@ -2275,15 +2285,21 @@ managable	manageable
 managable	manageably
 managment	management
 manisfestations	manifestations
+manoeuverability	maneuverability
 manouver	maneuver
 manouver	manoeuvre
 manouverability	maneuverability
+manouverability	manoeuvrability
+manouverability	manoeuverability
 manouverable	maneuverable
+manouverable	manoeuvrable
 manouvers	maneuvers
+manouvers	manoeuvres
 mantained	maintained
 manuever	maneuver
 manuever	manoeuvre
 manuevers	maneuvers
+manuevers	manoeuvres
 manufacturedd	manufactured
 manufature	manufacture
 manufatured	manufactured
@@ -2429,7 +2445,6 @@ mroe	more
 mucuous	mucous
 muder	murder
 mudering	murdering
-muhammadan	mohammedan
 multicultralism	multiculturalism
 multipled	multiplied
 multiplers	multipliers
@@ -2474,9 +2489,12 @@ neice	niece
 neice	nice
 neigborhood	neighborhood
 neigbour	neighbour
+neigbour	neighbor
 neigbourhood	neighbourhood
 neigbouring	neighbouring
+neigbouring	neighboring
 neigbours	neighbours
+neigbours	neighbors
 neolitic	neolithic
 nessasarily	necessarily
 nessecary	necessary
@@ -2623,7 +2641,7 @@ orgin	origin
 orgin	organ
 orginal	original
 orginally	originally
-orginize	organize
+orginize	organise
 oridinarily	ordinarily
 origanaly	originally
 originall	original
@@ -2776,7 +2794,6 @@ pinapple	pineapple
 pinnaple	pineapple
 pinoneered	pioneered
 plagarism	plagiarism
-planation	plantation
 planed	planned
 plantiff	plaintiff
 plateu	plateau
@@ -3042,6 +3059,7 @@ quicklyu	quickly
 quinessential	quintessential
 quizes	quizzes
 qutie	quite
+qutie	quiet
 rabinnical	rabbinical
 racaus	raucous
 radiactive	radioactive
@@ -3161,6 +3179,7 @@ religous	religious
 religously	religiously
 relinqushment	relinquishment
 relitavely	relatively
+relized	realised
 relized	realized
 relpacement	replacement
 remaing	remaining
@@ -3255,6 +3274,7 @@ rhymme	rhyme
 rhythem	rhythm
 rhythim	rhythm
 rhytmic	rhythmic
+rigeur	rigueur
 rigeur	rigour
 rigeur	rigor
 rigourous	rigorous
@@ -3373,7 +3393,6 @@ sheat	sheath
 sheat	sheet
 sheat	cheat
 sheild	shield
-sherif	sheriff
 shineing	shining
 shiped	shipped
 shiping	shipping
@@ -3381,8 +3400,6 @@ shopkeeepers	shopkeepers
 shorly	shortly
 shoudl	should
 shoudln	should
-shoudln	shouldn't
-shouldnt	shouldn't
 shreak	shriek
 shrinked	shrunk
 sicne	since
@@ -3468,6 +3485,7 @@ soverignty	sovereignty
 spainish	Spanish
 speach	speech
 specfic	specific
+speciallized	specialised
 speciallized	specialized
 specif	specific
 specif	specify
@@ -3705,6 +3723,7 @@ tath	that
 tattooes	tattoos
 taxanomic	taxonomic
 taxanomy	taxonomy
+teached	taught
 techician	technician
 techicians	technicians
 techiniques	techniques
@@ -3739,6 +3758,7 @@ testiclular	testicular
 tghe	the
 thast	that
 theather	theater
+theather	theatre
 theese	these
 theif	thief
 theives	thieves
@@ -3758,6 +3778,7 @@ thigns	things
 thigsn	things
 thikn	think
 thikning	thinking
+thikning	thickening
 thikns	thinks
 thiunk	think
 thn	then
@@ -3918,6 +3939,7 @@ univesity	university
 unkown	unknown
 unlikey	unlikely
 unmanouverable	unmaneuverable
+unmanouverable	unmanoeuvrable
 unmistakeably	unmistakably
 unneccesarily	unnecessarily
 unneccesary	unnecessary
@@ -4006,6 +4028,7 @@ versitilaty	versatility
 versitlity	versatility
 vetween	between
 veyr	very
+vigeur	vigueur
 vigeur	vigour
 vigeur	vigor
 vigilence	vigilance
@@ -4048,7 +4071,6 @@ warantee	warranty
 wardobe	wardrobe
 warrent	warrant
 warrriors	warriors
-wasnt	wasn't
 wass	was
 watn	want
 wayword	wayward
@@ -4125,10 +4147,12 @@ yeasr	years
 yeild	yield
 yeilding	yielding
 Yementite	Yemenite
+Yementite	Yemeni
 yearm	year
 yera	year
 yeras	years
 yersa	years
+youseff	yousef
 youself	yourself
 ytou	you
 yuo	you
