@@ -284,7 +284,7 @@ spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n, int n
 
 	size_t i = 0, corrections_count = 0;
 	size_t corrections_size = 16;
-	word_list *wc_array = emalloc(corrections_size * sizeof(*wc_array));
+	word_list *wl_array = emalloc(corrections_size * sizeof(*wl_array));
 	word_list *nodep = candidate_list;
 	float weight;
 
@@ -303,31 +303,31 @@ spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n, int n
 		if (tree_node) {
 			listnode.weight = tree_node->count * weight;
 			listnode.word = candidate;
-			wc_array[corrections_count++] = listnode;
+			wl_array[corrections_count++] = listnode;
 		} else
 			continue;
 		if (corrections_count == corrections_size - 1) {
 			corrections_size *= 2;
-			wc_array = erealloc(wc_array, corrections_size * sizeof(*wc_array));
+			wl_array = erealloc(wl_array, corrections_size * sizeof(*wl_array));
 		}
 	}
 
 	if (corrections_count == 0) {
-		free(wc_array);
+		free(wl_array);
 		return NULL;
 	}
 
 	size_t arraysize = n < corrections_count? n: corrections_count;
 	char **corrections = emalloc((arraysize + 1) * sizeof(*corrections));
 	corrections[arraysize] = NULL;
-	qsort(wc_array, corrections_count, sizeof(*wc_array), max_count);
+	qsort(wl_array, corrections_count, sizeof(*wl_array), max_count);
 	for (i = 0; i < arraysize; i++) {
-		if (wc_array[i].word) {
-			corrections[i] =  estrdup(wc_array[i].word);
-			//printf("%s %f\n", wc_array[i].word, wc_array[i].weight);
+		if (wl_array[i].word) {
+			corrections[i] =  estrdup(wl_array[i].word);
+			//printf("%s %f\n", wl_array[i].word, wl_array[i].weight);
 		}
 	}
-	free(wc_array);
+	free(wl_array);
 	return corrections;
 }
 
