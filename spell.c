@@ -41,7 +41,7 @@
 static void
 usage(void)
 {
-	(void) fprintf(stderr, "Usage: spell [-i input_file] [-w whitelist]\n");
+	(void) fprintf(stderr, "Usage: spell [-c number of suggestions]  [-i input_file] [-w whitelist]\n");
 	exit(1);
 }
 
