@@ -662,6 +662,43 @@ get_soundex_list(spell_t *spell, char *word)
 	return copy_word_list(soundexes->next);
 }
 
+static int
+min(int i, int j, int k)
+{
+	int min = i;
+	if (min > j)
+		min = j;
+	if (min > k)
+		min = k;
+	return min;
+}
+
+static int
+edit_distance(const char *s1, const char *s2)
+{
+	size_t i, j;
+	size_t len1 = strlen(s1);
+	size_t len2 = strlen(s2);
+	int m[len1 + 1][len2 + 1];
+	for (i = 0; i < len1; i++)
+		for(j = 0; j < len2; j++)
+			m[i][j] = 0;
+
+	for (i = 1; i <= len1; i++)
+		m[i][0] = i;
+	for (j = 1; j <= len2; j++)
+		m[0][j] = j;
+
+	for (i = 1; i <= len1; i++)
+		for (j = 1; j <= len2; j++)
+			if (s1[i - 1] == s2[j - 1])
+				m[i][j] = m[i - 1][j - 1];
+			else
+				m[i][j] = min(m[i - 1][j - 1] + 1,
+						m[i - 1][j] + 1,
+						m[i][j - 1] + 1);
+	return m[len1][len2];
+}
 
 int
 spell_is_known_word(spell_t *spell, const char *word, int ngram)
@@ -808,40 +845,3 @@ sanitize_string(char *s)
 	return ret;
 }
 
-static int
-min(int i, int j, int k)
-{
-	int min = i;
-	if (min > j)
-		min = j;
-	if (min > k)
-		min = k;
-	return min;
-}
-
-static int
-edit_distance(const char *s1, const char *s2)
-{
-	size_t i, j;
-	size_t len1 = strlen(s1);
-	size_t len2 = strlen(s2);
-	int m[len1 + 1][len2 + 1];
-	for (i = 0; i < len1; i++)
-		for(j = 0; j < len2; j++)
-			m[i][j] = 0;
-
-	for (i = 1; i <= len1; i++)
-		m[i][0] = i;
-	for (j = 1; j <= len2; j++)
-		m[0][j] = j;
-
-	for (i = 1; i <= len1; i++)
-		for (j = 1; j <= len2; j++)
-			if (s1[i - 1] == s2[j - 1])
-				m[i][j] = m[i - 1][j - 1];
-			else
-				m[i][j] = min(m[i - 1][j - 1] + 1,
-						m[i - 1][j] + 1,
-						m[i][j - 1] + 1);
-	return m[len1][len2];
-}
