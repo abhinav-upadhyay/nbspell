@@ -696,7 +696,20 @@ spell_get_suggestions(spell_t * spell, char *word, size_t nsuggestions)
 	if (corrections == NULL) {
 		soundexes = get_soundex_list(spell, word);
 		if (soundexes != NULL) {
-			corrections = spell_get_corrections(spell, soundexes, nsuggestions);
+			corrections = emalloc(2 * sizeof(char *));
+			corrections[0] = NULL;
+			corrections[1] = NULL;
+			int min_distance = 10000;
+			word_list *node = soundexes->next;
+			while (node != NULL) {
+				if (edit_distance(word, node->word) < min_distance) {
+					min_distance = edit_distance(word, node->word);
+					if (corrections[0])
+						free(corrections[0]);
+					corrections[0] = estrdup(node->word);
+				}
+				node = node->next;
+			}
 			free_word_list(soundexes);
 		}
 	}
@@ -793,4 +806,42 @@ sanitize_string(char *s)
 	}
 	ret[i] = 0;
 	return ret;
+}
+
+static int
+min(int i, int j, int k)
+{
+	int min = i;
+	if (min > j)
+		min = j;
+	if (min > k)
+		min = k;
+	return min;
+}
+
+static int
+edit_distance(const char *s1, const char *s2)
+{
+	size_t i, j;
+	size_t len1 = strlen(s1);
+	size_t len2 = strlen(s2);
+	int m[len1 + 1][len2 + 1];
+	for (i = 0; i < len1; i++)
+		for(j = 0; j < len2; j++)
+			m[i][j] = 0;
+
+	for (i = 1; i <= len1; i++)
+		m[i][0] = i;
+	for (j = 1; j <= len2; j++)
+		m[0][j] = j;
+
+	for (i = 1; i <= len1; i++)
+		for (j = 1; j <= len2; j++)
+			if (s1[i - 1] == s2[j - 1])
+				m[i][j] = m[i - 1][j - 1];
+			else
+				m[i][j] = min(m[i - 1][j - 1] + 1,
+						m[i - 1][j] + 1,
+						m[i][j - 1] + 1);
+	return m[len1][len2];
 }
