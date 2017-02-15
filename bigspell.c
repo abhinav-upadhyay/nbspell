@@ -107,11 +107,6 @@ do_bigram(FILE *inputf, const char *whitelist_filepath, size_t nsuggestions)
 			if (spell_is_known_word(spellt, word, 1))
 				continue;
 
-			if (is_whitelisted_word(spellt, word)) {
-				sentence_end = 1;
-				continue;
-			}
-
 			if (correction != NULL) {
 				free(correction);
 				correction = NULL;

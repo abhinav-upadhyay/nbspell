@@ -89,11 +89,6 @@ do_unigram(FILE *f, const char *whitelist_filepath, size_t nsuggestions)
 				continue;
 			}
 
-			if (is_whitelisted_word(spell, sanitized_word)) {
-				free(sanitized_word);
-				continue;
-			}
-
 			char **corrections = spell_get_suggestions(spell, sanitized_word, nsuggestions);
 			size_t i = 0;
 			if (corrections) {
