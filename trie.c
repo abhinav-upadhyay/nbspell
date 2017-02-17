@@ -5,6 +5,8 @@
 
 #include "trie.h"
 
+#define char_index(c) c - 97
+
 trie *
 trie_init(void)
 {
@@ -16,14 +18,14 @@ trie_init(void)
 }
 
 void
-trie_insert(trie **t, const char *key, size_t value)
+trie_insert(trie *t, const char *key, size_t value)
 {
 	const char *c = key;
-	trie *cur_node = *t;
+	trie *cur_node = t;
 	while (*c) {
-		if (cur_node->children[*c] == NULL)
-			cur_node->children[*c] = trie_init();
-		cur_node = cur_node->children[*c];
+		if (cur_node->children[char_index(*c)] == NULL)
+			cur_node->children[char_index(*c)] = trie_init();
+		cur_node = cur_node->children[char_index(*c)];
 		c++;
 	}
 	cur_node->count = value;
@@ -35,9 +37,9 @@ trie_get(trie *t, const char *key)
 	const char *c = key;
 	trie *cur_node = t;
 	while (*c) {
-		if (cur_node->children[*c] == NULL)
+		if (cur_node->children[char_index(*c)] == NULL)
 			return 0;
-		cur_node = cur_node->children[*c];
+		cur_node = cur_node->children[char_index(*c)];
 		c++;
 	}
 	return cur_node->count;

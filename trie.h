@@ -9,7 +9,7 @@ typedef struct trie {
 } trie;
 
 trie *trie_init(void);
-void trie_insert(trie **, const char *, size_t);
+void trie_insert(trie *, const char *, size_t);
 size_t trie_get(trie *, const char *);
 
 #endif
