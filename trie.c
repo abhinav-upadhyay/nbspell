@@ -12,8 +12,7 @@ trie_init(void)
 {
 	trie *t = emalloc(sizeof(*t));
 	memset(t, 0, sizeof(*t));
-	t->children = emalloc(R_SIZE * sizeof(*(t->children)));
-	memset(t->children, 0, sizeof(*(t->children)));
+	t->children = ecalloc(R_SIZE, sizeof(*(t->children)));
 	return t;
 }
 
