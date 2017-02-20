@@ -27,34 +27,62 @@
  * SUCH DAMAGE.
  */
 
-#ifndef LIBSPELL_H
-#define LIBSPELL_H
+#include <stdlib.h>
+#include <util.h>
 
-#include <sys/rbtree.h>
 #include "trie.h"
 
-/* Number of possible arrangements of a word of length ``n'' at edit distance 1 */
-#define COMBINATIONS(n) n + n - 1 + 26 * n + 26 * (n + 1)
+trie_t *
+trie_init(void)
+{
+	return ecalloc(1, sizeof(trie_t));
+}
 
-typedef struct word_count {
-	char *word;
-	size_t count;
-	rb_node_t rbtree;
-} word_count;
+void
+trie_insert(trie_t **trie, const char *key, size_t value)
+{
+	char c = key[0];
+	trie_t *t;
+	if (*trie == NULL)
+		*trie = trie_init();
 
-typedef struct spell_t {
-	struct trie_t *dictionary;
-	rb_tree_t *ngrams_tree;
-	rb_tree_t *soundex_tree;
-} spell_t;
+	t = *trie;
 
-void free_list(char **);
-spell_t *spell_init(const char *, const char *);
-int spell_is_known_word(spell_t *, const char *, int);
-char **spell_get_suggestions(spell_t *, char *, size_t);
-char *soundex(const char *);
-void spell_destroy(spell_t *);
-int compare_words(void *, const void *, const void *);
-char *lower(char *);
-char * sanitize_string(char *);
-#endif
+	if (c == 0) {
+		t->value = value;
+		return;
+	}
+
+	if (t->character == 0)
+		t->character = c;
+
+	if (c > t->character)
+		return trie_insert(&(t->right), key, value);
+
+	if (c < t->character)
+		return trie_insert(&(t->left), key, value);
+
+	return trie_insert(&(t->middle), key + 1, value);
+}
+
+size_t
+trie_get(trie_t * t, const char *key)
+{
+	char c = key[0];
+	if (t == NULL)
+		return 0;
+
+	if (key[0] == 0)
+		return t->value;
+
+	if (t->character == 0)
+		return 0;
+
+	if (c == t->character)
+		return trie_get(t->middle, key + 1);
+
+	if (c > t->character)
+		return trie_get(t->right, key);
+
+	return trie_get(t->left, key);
+}

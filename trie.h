@@ -27,34 +27,19 @@
  * SUCH DAMAGE.
  */
 
-#ifndef LIBSPELL_H
-#define LIBSPELL_H
+#ifndef TRIE_H
+#define TRIE_H
 
-#include <sys/rbtree.h>
-#include "trie.h"
+typedef struct trie_t {
+	size_t value;
+	char character;
+	struct trie_t *left;
+	struct trie_t *right;
+	struct trie_t *middle;
+} trie_t;
 
-/* Number of possible arrangements of a word of length ``n'' at edit distance 1 */
-#define COMBINATIONS(n) n + n - 1 + 26 * n + 26 * (n + 1)
+trie_t *trie_init(void);
+void trie_insert(trie_t **, const char *, size_t);
+size_t trie_get(trie_t *, const char *);
 
-typedef struct word_count {
-	char *word;
-	size_t count;
-	rb_node_t rbtree;
-} word_count;
-
-typedef struct spell_t {
-	struct trie_t *dictionary;
-	rb_tree_t *ngrams_tree;
-	rb_tree_t *soundex_tree;
-} spell_t;
-
-void free_list(char **);
-spell_t *spell_init(const char *, const char *);
-int spell_is_known_word(spell_t *, const char *, int);
-char **spell_get_suggestions(spell_t *, char *, size_t);
-char *soundex(const char *);
-void spell_destroy(spell_t *);
-int compare_words(void *, const void *, const void *);
-char *lower(char *);
-char * sanitize_string(char *);
 #endif
