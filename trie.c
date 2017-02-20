@@ -29,7 +29,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <util.h>
 
 #include "trie.h"
@@ -37,7 +36,7 @@
 trie_t *
 trie_init(void)
 {
-	return ecalloc(1, sizeof(*t));
+	return ecalloc(1, sizeof(trie_t));
 }
 
 void
@@ -68,7 +67,7 @@ trie_insert(trie_t **trie, const char *key, int value)
 }
 
 int
-trie_get(trie_t *t, const char *key)
+trie_get(trie_t * t, const char *key)
 {
 	char c = key[0];
 	if (t == NULL)
