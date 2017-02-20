@@ -43,7 +43,7 @@ typedef struct word_count {
 } word_count;
 
 typedef struct spell_t {
-	struct trie *dictionary;
+	struct trie_t *dictionary;
 	rb_tree_t *ngrams_tree;
 	rb_tree_t *soundex_tree;
 } spell_t;

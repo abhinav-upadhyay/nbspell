@@ -347,7 +347,7 @@ compare_listnodes(void *context, const void *node1, const void *node2)
 }
 
 static int
-parse_file_and_generate_trie(FILE *f, trie *tree, char field_separator)
+parse_file_and_generate_trie(FILE *f, trie_t *tree, char field_separator)
 {
 	if (f == NULL)
 		return -1;
@@ -375,7 +375,7 @@ parse_file_and_generate_trie(FILE *f, trie *tree, char field_separator)
 			count = 1;
 
 		lower(templine);
-		trie_insert(tree, templine, count);
+		trie_insert(&tree, templine, count);
 		free(line);
 		line = NULL;
 	}
@@ -441,7 +441,7 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 	};
 
 	spell_t *spellt;
-	trie *words_tree;
+	trie_t *words_tree;
 	static rb_tree_t *ngrams_tree;
 	static rb_tree_t *soundex_tree;
 

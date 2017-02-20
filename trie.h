@@ -31,15 +31,17 @@
 #define TRIE_H
 
 #define R_SIZE 26
-#define char_index(c) c - 97
 
-typedef struct trie {
-	size_t count;
-	struct trie **children;
-} trie;
+typedef struct trie_t {
+	int value;
+	char character;
+	struct trie_t *left;
+	struct trie_t *right;
+	struct trie_t *middle;
+} trie_t;
 
-trie *trie_init(void);
-void trie_insert(trie *, const char *, size_t);
-size_t trie_get(trie *, const char *);
+trie_t *trie_init(void);
+void trie_insert(trie_t **, const char *, int);
+int trie_get(trie_t *, const char *);
 
 #endif

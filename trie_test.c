@@ -10,11 +10,11 @@ main(int argc, char **argv)
 	const char *s3 = "hell";
 	const char *s4 = "woo";
 
-	trie *t = trie_init();
-	trie_insert(t, s1, 1);
-	trie_insert(t, s2, 4);
-	trie_insert(t, s3, 10);
-	trie_insert(t, s4, 5);
+	trie_t *t = trie_init();
+	trie_insert(&t, s1, 1);
+	trie_insert(&t, s2, 4);
+	trie_insert(&t, s3, 10);
+	trie_insert(&t, s4, 5);
 
 	printf("%s: %zu\n", s1, trie_get(t, s1));
 	printf("%s: %zu\n", s2, trie_get(t, s2));

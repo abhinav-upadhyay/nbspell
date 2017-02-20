@@ -34,48 +34,63 @@
 
 #include "trie.h"
 
-
-trie *
+trie_t *
 trie_init(void)
 {
-	trie *t = emalloc(sizeof(*t));
+	trie_t *t = emalloc(sizeof(*t));
 	memset(t, 0, sizeof(*t));
-	t->children = ecalloc(R_SIZE, sizeof(*(t->children)));
 	return t;
 }
 
 void
-trie_insert(trie *t, const char *key, size_t value)
+trie_insert(trie_t **trie, const char *key, int value)
 {
-	const char *c = key;
-	trie *cur_node = t;
-	int index;
-	while (*c) {
-		index = char_index(*c);
-		if (index < 0 || index  >= R_SIZE)
-			return;
-		if (cur_node->children[index] == NULL)
-			cur_node->children[index] = trie_init();
-		cur_node = cur_node->children[index];
-		c++;
+	char c = key[0];
+	trie_t *t;
+	if (*trie == NULL)
+		*trie = trie_init();
+
+	t = *trie;
+
+	if (c == 0) {
+		t->value = value;
+		return;
 	}
-	cur_node->count = value;
+
+	if (t->character == 0)
+		t->character = c;
+
+	if (c > t->character)
+		return trie_insert(&(t->right), key, value);
+
+	if (c < t->character)
+		return trie_insert(&(t->left), key, value);
+
+	if (c == t->character)
+		return trie_insert(&(t->middle), key + 1, value);
+
 }
 
-size_t
-trie_get(trie *t, const char *key)
+int
+trie_get(trie_t *t, const char *key)
 {
-	const char *c = key;
-	trie *cur_node = t;
-	int index;
-	while (*c) {
-		index = char_index(*c);
-		if (index < 0 || index >= R_SIZE)
-			return 0;
-		if (cur_node->children[index] == NULL)
-			return 0;
-		cur_node = cur_node->children[index];
-		c++;
+	char c = key[0];
+	if (t == NULL)
+		return 0;
+
+	if (key[0] == 0)
+		return t->value;
+
+	if (t->character == 0)
+		return 0;
+
+
+	if (c == t->character) {
+		return trie_get(t->middle, key + 1);
 	}
-	return cur_node->count;
+
+	if (c > t->character)
+		return trie_get(t->right, key);
+
+	return trie_get(t->left, key);
 }
