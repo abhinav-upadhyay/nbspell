@@ -37,9 +37,7 @@
 trie_t *
 trie_init(void)
 {
-	trie_t *t = emalloc(sizeof(*t));
-	memset(t, 0, sizeof(*t));
-	return t;
+	return ecalloc(1, sizeof(*t));
 }
 
 void
@@ -66,8 +64,7 @@ trie_insert(trie_t **trie, const char *key, int value)
 	if (c < t->character)
 		return trie_insert(&(t->left), key, value);
 
-	if (c == t->character)
-		return trie_insert(&(t->middle), key + 1, value);
+	return trie_insert(&(t->middle), key + 1, value);
 
 }
 
@@ -85,9 +82,8 @@ trie_get(trie_t *t, const char *key)
 		return 0;
 
 
-	if (c == t->character) {
+	if (c == t->character)
 		return trie_get(t->middle, key + 1);
-	}
 
 	if (c > t->character)
 		return trie_get(t->right, key);
