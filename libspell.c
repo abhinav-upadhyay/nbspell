@@ -293,9 +293,9 @@ spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n)
 		weight = nodep->weight;
 		nodep = nodep->next;
 		word_list listnode;
-		size_t *count = (size_t *) trie_get(spell->dictionary, candidate);
+		size_t count = trie_get(spell->dictionary, candidate);
 		if (count) {
-			listnode.weight = *(count) * weight;
+			listnode.weight = count * weight;
 			listnode.word = candidate;
 			wl_array[corrections_count++] = listnode;
 		} else
@@ -353,10 +353,13 @@ parse_file_and_generate_trie(FILE *f, trie_t *tree, char field_separator)
 		return -1;
 
 	char *line = NULL;
-	size_t *count;
+	long count;
 	size_t linesize = 0;
 	size_t wordsize = 0;
 	ssize_t bytes_read;
+	word_count *wcnode;
+	word_count wc;
+	wc.count = 0;
 	while ((bytes_read = getline(&line, &linesize, f)) != -1) {
 		line[bytes_read - 1] = 0;
 		char *templine = line;
@@ -367,12 +370,9 @@ parse_file_and_generate_trie(FILE *f, trie_t *tree, char field_separator)
 				return -1;
 			}
 			sepindex[0] = 0;
-			count = emalloc(sizeof(*count));
-			*count = strtol(sepindex + 1, NULL, 10);
-		} else {
-			count = emalloc(sizeof(*count));
-			*count = 1;
-		}
+			count = strtol(sepindex + 1, NULL, 10);
+		} else
+			count = 1;
 
 		lower(templine);
 		trie_insert(&tree, templine, count);
@@ -730,7 +730,7 @@ int
 spell_is_known_word(spell_t *spell, const char *word, int ngram)
 {
 	if (ngram == 1)
-		return trie_get(spell->dictionary, word) != NULL;
+		return trie_get(spell->dictionary, word);
 	else if (ngram == 2) {
 		word_count wc;
 		wc.word = (char *) word;

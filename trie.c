@@ -39,7 +39,7 @@ trie_init(void)
 }
 
 void
-trie_insert(trie_t **trie, const char *key, void *value)
+trie_insert(trie_t **trie, const char *key, int value)
 {
 	char c = key[0];
 	trie_t *t;
@@ -65,7 +65,7 @@ trie_insert(trie_t **trie, const char *key, void *value)
 	return trie_insert(&(t->middle), key + 1, value);
 }
 
-void *
+int
 trie_get(trie_t * t, const char *key)
 {
 	char c = key[0];

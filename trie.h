@@ -33,7 +33,7 @@
 #define R_SIZE 26
 
 typedef struct trie_t {
-	void *value;
+	int value;
 	char character;
 	struct trie_t *left;
 	struct trie_t *right;
@@ -41,7 +41,7 @@ typedef struct trie_t {
 } trie_t;
 
 trie_t *trie_init(void);
-void trie_insert(trie_t **, const char *, void *);
-void *trie_get(trie_t *, const char *);
+void trie_insert(trie_t **, const char *, int);
+int trie_get(trie_t *, const char *);
 
 #endif
