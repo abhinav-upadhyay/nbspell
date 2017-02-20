@@ -31,6 +31,7 @@
 #define TRIE_H
 
 #define R_SIZE 26
+#define char_index(c) c - 97
 
 typedef struct trie {
 	size_t count;

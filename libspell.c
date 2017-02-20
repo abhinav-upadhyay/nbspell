@@ -293,12 +293,9 @@ spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n)
 		weight = nodep->weight;
 		nodep = nodep->next;
 		word_list listnode;
-		word_count node;
-		word_count *tree_node;
-		node.word = candidate;
-		tree_node = rb_tree_find_node(spell->dictionary, &node);
-		if (tree_node) {
-			listnode.weight = tree_node->count * weight;
+		size_t count = trie_get(spell->dictionary, candidate);
+		if (count) {
+			listnode.weight = count * weight;
 			listnode.word = candidate;
 			wl_array[corrections_count++] = listnode;
 		} else
@@ -348,6 +345,44 @@ compare_listnodes(void *context, const void *node1, const void *node2)
 
 	return strcmp(wl1->word, wl2->word);
 }
+
+static int
+parse_file_and_generate_trie(FILE *f, trie *tree, char field_separator)
+{
+	if (f == NULL)
+		return -1;
+
+	char *line = NULL;
+	long count;
+	size_t linesize = 0;
+	size_t wordsize = 0;
+	ssize_t bytes_read;
+	word_count *wcnode;
+	word_count wc;
+	wc.count = 0;
+	while ((bytes_read = getline(&line, &linesize, f)) != -1) {
+		line[bytes_read - 1] = 0;
+		char *templine = line;
+		if (field_separator) {
+			char *sepindex = strchr(templine, field_separator);
+			if (sepindex == NULL) {
+				free(line);
+				return -1;
+			}
+			sepindex[0] = 0;
+			count = strtol(sepindex + 1, NULL, 10);
+		} else
+			count = 1;
+
+		lower(templine);
+		trie_insert(tree, templine, count);
+		free(line);
+		line = NULL;
+	}
+	free(line);
+	return 0;
+}
+
 
 static int
 parse_file_and_generate_tree(FILE *f, rb_tree_t *tree, char field_separator)
@@ -406,12 +441,11 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 	};
 
 	spell_t *spellt;
-	static rb_tree_t *words_tree;
+	trie *words_tree;
 	static rb_tree_t *ngrams_tree;
 	static rb_tree_t *soundex_tree;
 
-	words_tree = emalloc(sizeof(*words_tree));
-	rb_tree_init(words_tree, &tree_ops);
+	words_tree = trie_init();
 	spellt = emalloc(sizeof(*spellt));
 	spellt->dictionary = words_tree;
 	spellt->ngrams_tree = NULL;
@@ -425,7 +459,7 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 	word_count *wcnode;
 	word_count wc;
 	wc.count = 0;
-	if ((parse_file_and_generate_tree(f, words_tree, '\t')) < 0) {
+	if ((parse_file_and_generate_trie(f, words_tree, '\t')) < 0) {
 		spell_destroy(spellt);
 		fclose(f);
 		return NULL;
@@ -502,7 +536,7 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 	if (whitelist_filepath == NULL || (f = fopen(whitelist_filepath, "r")) == NULL)
 		return spellt;
 
-	if ((parse_file_and_generate_tree(f, words_tree, 0)) < 0) {
+	if ((parse_file_and_generate_trie(f, words_tree, 0)) < 0) {
 		spell_destroy(spellt);
 		fclose(f);
 		return NULL;
@@ -695,14 +729,15 @@ edit_distance(const char *s1, const char *s2)
 int
 spell_is_known_word(spell_t *spell, const char *word, int ngram)
 {
-	word_count wc;
-	wc.word = (char *) word;
-	word_count *node;
 	if (ngram == 1)
-		node = rb_tree_find_node(spell->dictionary, &wc);
-	else if (ngram == 2)
-		node = rb_tree_find_node(spell->ngrams_tree, &wc);
-	return node != NULL? node->count: 0;
+		return trie_get(spell->dictionary, word);
+	else if (ngram == 2) {
+		word_count wc;
+		wc.word = (char *) word;
+		word_count *node = rb_tree_find_node(spell->ngrams_tree, &wc);
+		return node != NULL? node->count: 0;
+	}
+	return 0;
 }
 
 char **
@@ -770,7 +805,7 @@ free_tree(rb_tree_t * tree)
 void
 spell_destroy(spell_t * spell)
 {
-	free_tree(spell->dictionary);
+	//free_tree(spell->dictionary);
 
 	if (spell->ngrams_tree != NULL)
 		free_tree(spell->ngrams_tree);
