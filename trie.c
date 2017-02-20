@@ -65,7 +65,6 @@ trie_insert(trie_t **trie, const char *key, int value)
 		return trie_insert(&(t->left), key, value);
 
 	return trie_insert(&(t->middle), key + 1, value);
-
 }
 
 int
