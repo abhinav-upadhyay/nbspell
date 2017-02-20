@@ -36,6 +36,7 @@
 #include <util.h>
 
 #include "libspell.h"
+#include "trie.h"
 
 typedef struct word_list {
 	struct word_list *next;
@@ -353,7 +354,7 @@ parse_file_and_generate_trie(FILE *f, trie_t *tree, char field_separator)
 		return -1;
 
 	char *line = NULL;
-	long count;
+	size_t count;
 	size_t linesize = 0;
 	size_t wordsize = 0;
 	ssize_t bytes_read;
@@ -730,7 +731,7 @@ int
 spell_is_known_word(spell_t *spell, const char *word, int ngram)
 {
 	if (ngram == 1)
-		return trie_get(spell->dictionary, word);
+		return trie_get(spell->dictionary, word) != 0;
 	else if (ngram == 2) {
 		word_count wc;
 		wc.word = (char *) word;
@@ -811,7 +812,6 @@ spell_destroy(spell_t * spell)
 		free_tree(spell->ngrams_tree);
 
 	free(spell);
-
 }
 
 char *
@@ -847,7 +847,7 @@ sanitize_string(char *s)
 			return NULL;
 		}
 		//Why bother with words which contain other characters or numerics ?
-		    if (!isalpha(*s)) {
+		if (!isalpha(*s)) {
 			free(ret);
 			return NULL;
 		}
@@ -856,4 +856,3 @@ sanitize_string(char *s)
 	ret[i] = 0;
 	return ret;
 }
-
