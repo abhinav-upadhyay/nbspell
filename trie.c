@@ -81,7 +81,6 @@ trie_get(trie_t *t, const char *key)
 	if (t->character == 0)
 		return 0;
 
-
 	if (c == t->character)
 		return trie_get(t->middle, key + 1);
 
