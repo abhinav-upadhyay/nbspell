@@ -53,7 +53,7 @@ do_unigram(FILE *f, const char *whitelist_filepath, size_t nsuggestions)
 	char *word = NULL;
 	size_t wordsize = 0;
 	ssize_t bytes_read;
-	spell_t *spell = spell_init("dict/unigram.txt", whitelist_filepath);
+	spell_t *spell = NULL;
 	char *line = NULL;
 	size_t linesize = 0;
 	word_count *wcnode;
@@ -67,6 +67,8 @@ do_unigram(FILE *f, const char *whitelist_filepath, size_t nsuggestions)
 		if (line[bytes_read] == '\r')
 			line[bytes_read] = 0;
 		char *templine = line;
+		if (spell == NULL)
+			spell = spell_init("dict/unigram.txt", whitelist_filepath);
 		while (*templine) {
 			wordsize = strcspn(templine, " ");
 			templine[wordsize] = 0;
