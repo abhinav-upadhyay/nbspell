@@ -1,5 +1,11 @@
 .include <bsd.own.mk>
 
+MAN.spell=		# none
+MAN.bigspell=		# none
+MAN.dictionary=		# none
+MAN.soundex=		# none
+MAN.trie_test=		# none
+
 PROGS=			dictionary spell bigspell soundex trie_test
 SRCS.spell=		spell.c libspell.c trie.c
 SRCS.bigspell=		bigspell.c libspell.c trie.c
