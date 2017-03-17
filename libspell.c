@@ -382,16 +382,7 @@ parse_file_and_generate_trie(FILE *f, trie_t *tree, char field_separator)
 			count = 1;
 
 		lower(templine);
-		/* We assume that our dictionary doesn't contain duplicate words.
-		 * However, we do insert the whitelist words in the same tree as
-		 * the words from the proper dictionary. In order to avoid replacing
-		 * words from the original dictionary, first check if the words is
-		 * already not present in the dictionary. Since our dictionary does
-		 * not contain duplicate words, the only case where we might try
-		 * to replace words is when inserting whitelist words.
-		 */
-		if (trie_get(tree, templine) == 0) //Don't replace existing entries
-			trie_insert(&tree, templine, count);
+		trie_insert(&tree, templine, count);
 		free(line);
 		line = NULL;
 	}
@@ -445,9 +436,7 @@ parse_file_and_generate_tree(FILE *f, rb_tree_t *tree, char field_separator)
 spell_t *
 spell_init(const char *dictionary_path, const char *whitelist_filepath)
 {
-	FILE *f = fopen(dictionary_path, "r");
-	if (f == NULL)
-		return NULL;
+	FILE *f;
 
 	static const rb_tree_ops_t tree_ops = {
 		.rbto_compare_nodes =  compare_words,
@@ -475,12 +464,25 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 	word_count *wcnode;
 	word_count wc;
 	wc.count = 0;
+
+	if (whitelist_filepath != NULL && (f = fopen(whitelist_filepath, "r")) != NULL) {
+		if ((parse_file_and_generate_trie(f, words_tree, 0)) < 0) {
+			spell_destroy(spellt);
+			fclose(f);
+			return NULL;
+		}
+	}
+
+	if ((f = fopen(dictionary_path, "r")) == NULL) {
+		spell_destroy(spellt);
+		return NULL;
+	}
+
 	if ((parse_file_and_generate_trie(f, words_tree, '\t')) < 0) {
 		spell_destroy(spellt);
 		fclose(f);
 		return NULL;
 	}
-	fclose(f);
 
 	if ((f = fopen("dict/bigram.txt", "r")) != NULL) {
 		ngrams_tree = emalloc(sizeof(*ngrams_tree));
@@ -547,17 +549,6 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 		fclose(f);
 	}
 	free(line);
-
-
-	if (whitelist_filepath == NULL || (f = fopen(whitelist_filepath, "r")) == NULL)
-		return spellt;
-
-	if ((parse_file_and_generate_trie(f, words_tree, 0)) < 0) {
-		spell_destroy(spellt);
-		fclose(f);
-		return NULL;
-	}
-	fclose(f);
 	return spellt;
 }
 
