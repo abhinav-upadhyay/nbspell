@@ -124,7 +124,7 @@ add_candidate_node(char *candidate, word_list **candidates, word_list **tail, fl
 static word_list *
 edits1(char *word, size_t distance)
 {
-	size_t i, len_a, len_b;
+	size_t i, j, len_a, len_b;
 	char alphabet;
 	size_t wordlen = strlen(word);
 	if (wordlen <= 1)
@@ -135,6 +135,7 @@ edits1(char *word, size_t distance)
 	word_list *tail = NULL;
 	char *word_soundex = soundex(word);
 	char *candidate_soundex;
+	const char alphabets[] = "abcdefghijklmnopqrstuvwxyz- ";
 
 	/* Start by generating a split up of the characters in the word */
 	for (i = 0; i < wordlen + 1; i++) {
@@ -188,7 +189,8 @@ edits1(char *word, size_t distance)
 			add_candidate_node(candidate, &candidates, &tail, weight);
 		}
 		/* For replaces and inserts, run a loop from 'a' to 'z' */
-		for (alphabet = 'a'; alphabet <= 'z'; alphabet++) {
+		for (j = 0; j < sizeof(alphabets) - 1; j++) {
+			alphabet = alphabets[j];
 			float weight = 1.0 / distance;
 			/* Replaces */
 			if (i < wordlen && splits[i].b[0] != alphabet) {
