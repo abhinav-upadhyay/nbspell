@@ -375,10 +375,23 @@ parse_file_and_generate_trie(FILE *f, trie_t *tree, char field_separator)
 			sepindex[0] = 0;
 			count = strtol(sepindex + 1, NULL, 10);
 		} else
+			/* Since our trie expects to store a count of the frequency of the word
+			 * and for some cases (such as the whitelist word file) we don't have
+			 * those counts, set the default count as 1
+			 */
 			count = 1;
 
 		lower(templine);
-		trie_insert(&tree, templine, count);
+		/* We assume that our dictionary doesn't contain duplicate words.
+		 * However, we do insert the whitelist words in the same tree as
+		 * the words from the proper dictionary. In order to avoid replacing
+		 * words from the original dictionary, first check if the words is
+		 * already not present in the dictionary. Since our dictionary does
+		 * not contain duplicate words, the only case where we might try
+		 * to replace words is when inserting whitelist words.
+		 */
+		if (trie_get(tree, templine) == 0) //Don't replace existing entries
+			trie_insert(&tree, templine, count);
 		free(line);
 		line = NULL;
 	}
