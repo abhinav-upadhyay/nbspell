@@ -237,7 +237,6 @@ edits1(char *word, size_t distance)
 	return candidates;
 }
 
-
 /*
  * Returns a list of words at an edit distance +1 than the words
  * in the list passed through the parameter edits1_list
@@ -350,7 +349,7 @@ compare_listnodes(void *context, const void *node1, const void *node2)
 }
 
 static int
-parse_file_and_generate_trie(FILE *f, trie_t *tree, char field_separator)
+parse_file_and_generate_trie(FILE * f, trie_t * tree, char field_separator)
 {
 	if (f == NULL)
 		return -1;
@@ -375,9 +374,10 @@ parse_file_and_generate_trie(FILE *f, trie_t *tree, char field_separator)
 			sepindex[0] = 0;
 			count = strtol(sepindex + 1, NULL, 10);
 		} else
-			/* Since our trie expects to store a count of the frequency of the word
-			 * and for some cases (such as the whitelist word file) we don't have
-			 * those counts, set the default count as 1
+			/* Since our trie expects to store a count of the
+			 * frequency of the word and for some cases (such as
+			 * the whitelist word file) we don't have those
+			 * counts, set the default count as 1
 			 */
 			count = 1;
 
@@ -389,7 +389,6 @@ parse_file_and_generate_trie(FILE *f, trie_t *tree, char field_separator)
 	free(line);
 	return 0;
 }
-
 
 static int
 parse_file_and_generate_tree(FILE *f, rb_tree_t *tree, char field_separator)
