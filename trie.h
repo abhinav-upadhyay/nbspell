@@ -30,8 +30,10 @@
 #ifndef TRIE_H
 #define TRIE_H
 
+#include <stdint.h>
+
 typedef struct trie_t {
-	size_t value;
+	uint32_t value;
 	char character;
 	struct trie_t *left;
 	struct trie_t *right;
