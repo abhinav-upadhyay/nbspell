@@ -281,14 +281,14 @@ max_count(const void *node1, const void *node2)
 static char **
 spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n)
 {
-	if (candidate_list == NULL)
-		return NULL;
-
 	size_t i = 0, corrections_count = 0;
 	size_t corrections_size = 16;
 	word_list *wl_array = emalloc(corrections_size * sizeof(*wl_array));
 	word_list *nodep = candidate_list;
 	float weight;
+
+	if (candidate_list == NULL)
+		return NULL;
 
 	while (nodep->next != NULL) {
 		char *candidate = nodep->word;
@@ -296,12 +296,12 @@ spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n)
 		nodep = nodep->next;
 		word_list listnode;
 		size_t count = trie_get(spell->dictionary, candidate);
-		if (count) {
-			listnode.weight = count * weight;
-			listnode.word = candidate;
-			wl_array[corrections_count++] = listnode;
-		} else
+		if (count == 0)
 			continue;
+		listnode.weight = count * weight;
+		listnode.word = candidate;
+		wl_array[corrections_count++] = listnode;
+
 		if (corrections_count == corrections_size - 1) {
 			corrections_size *= 2;
 			wl_array = erealloc(wl_array, corrections_size * sizeof(*wl_array));
