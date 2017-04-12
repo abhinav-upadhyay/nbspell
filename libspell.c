@@ -86,7 +86,6 @@ free_word_list(word_list *list)
 static void
 add_candidate_node(char *candidate, word_list **candidates, word_list **tail, float weight)
 {
-	weight = 1.0;
 	if (*candidates == NULL) {
 		*candidates = emalloc(sizeof(**candidates));
 		(*candidates)->next = NULL;
@@ -282,14 +281,14 @@ max_count(const void *node1, const void *node2)
 static char **
 spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n)
 {
+	if (candidate_list == NULL)
+		return NULL;
+
 	size_t i = 0, corrections_count = 0;
 	size_t corrections_size = 16;
 	word_list *wl_array = emalloc(corrections_size * sizeof(*wl_array));
 	word_list *nodep = candidate_list;
 	float weight;
-
-	if (candidate_list == NULL)
-		return NULL;
 
 	while (nodep->next != NULL) {
 		char *candidate = nodep->word;
@@ -297,12 +296,12 @@ spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n)
 		nodep = nodep->next;
 		word_list listnode;
 		size_t count = trie_get(spell->dictionary, candidate);
-		if (count == 0)
+		if (count) {
+			listnode.weight = count * weight;
+			listnode.word = candidate;
+			wl_array[corrections_count++] = listnode;
+		} else
 			continue;
-		listnode.weight = count * weight;
-		listnode.word = candidate;
-		wl_array[corrections_count++] = listnode;
-
 		if (corrections_count == corrections_size - 1) {
 			corrections_size *= 2;
 			wl_array = erealloc(wl_array, corrections_size * sizeof(*wl_array));
@@ -484,7 +483,7 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 		return NULL;
 	}
 
-	/*if ((f = fopen("dict/bigram.txt", "r")) != NULL) {
+	if ((f = fopen("dict/bigram.txt", "r")) != NULL) {
 		ngrams_tree = emalloc(sizeof(*ngrams_tree));
 		rb_tree_init(ngrams_tree, &tree_ops);
 		spellt->ngrams_tree = ngrams_tree;
@@ -494,7 +493,7 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 			return NULL;
 		}
 		fclose(f);
-	}*/
+	}
 
 	if ((f = fopen("dict/soundex.txt", "r")) != NULL) {
 		static const rb_tree_ops_t soundex_tree_ops = {
@@ -529,7 +528,7 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 				word_list *newlistnode = emalloc(sizeof(*newlistnode));
 				newlistnode->word = estrdup(word);
 				newlistnode->next = listnode->next;
-				newlistnode->weight = 1.0;
+				newlistnode->weight = .01;
 				listnode->next = newlistnode;
 			} else {
 				listnode = emalloc(sizeof(*listnode));
@@ -537,7 +536,7 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 				word_list *newlistnode = emalloc(sizeof(*newlistnode));
 				newlistnode->word = estrdup(word);
 				newlistnode->next = NULL;
-				newlistnode->weight = 1.0;
+				newlistnode->weight = .01;
 				listnode->next= newlistnode;
 				rb_tree_insert_node(soundex_tree, listnode);
 			}
