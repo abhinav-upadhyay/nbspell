@@ -607,6 +607,9 @@ soundex(const char *word)
 		case 'r':
 			snd_buffer[i++] = '6';
 			break;
+		case '-':
+			snd_buffer[i++] = '_'; // We don't care about hyphens in soundex
+			break;
 		default:
 			free(soundex_code);
 			free(snd_buffer);
@@ -616,6 +619,11 @@ soundex(const char *word)
 	i = 1;
 	c = 0;
 	while (snd_buffer[i] != 0) {
+		if (snd_buffer[i] == '_') {
+			i++;
+			continue;
+		}
+
 		if (snd_buffer[i] == '-') {
 			c = 0;
 			i++;
@@ -634,7 +642,7 @@ soundex(const char *word)
 	i = 1;
 	soundex_code[0] = snd_buffer[0];
 	while (snd_buffer[i] != 0 && soundex_len != 4) {
-		if (snd_buffer[i] == '-') {
+		if (snd_buffer[i] == '-' || snd_buffer[i] == '_') {
 			i++;
 			continue;
 		}
