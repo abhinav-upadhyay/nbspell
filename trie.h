@@ -33,11 +33,11 @@
 #include <stdint.h>
 
 typedef struct trie_t {
-	uint32_t value;
-	char character;
 	struct trie_t *left;
 	struct trie_t *right;
 	struct trie_t *middle;
+	uint32_t value;
+	char character;
 } trie_t;
 
 trie_t *trie_init(void);

@@ -281,14 +281,14 @@ max_count(const void *node1, const void *node2)
 static char **
 spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n)
 {
-	if (candidate_list == NULL)
-		return NULL;
-
 	size_t i = 0, corrections_count = 0;
 	size_t corrections_size = 16;
 	word_list *wl_array = emalloc(corrections_size * sizeof(*wl_array));
 	word_list *nodep = candidate_list;
 	float weight;
+
+	if (candidate_list == NULL)
+		return NULL;
 
 	while (nodep->next != NULL) {
 		char *candidate = nodep->word;
@@ -296,12 +296,12 @@ spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n)
 		nodep = nodep->next;
 		word_list listnode;
 		size_t count = trie_get(spell->dictionary, candidate);
-		if (count) {
-			listnode.weight = count * weight;
-			listnode.word = candidate;
-			wl_array[corrections_count++] = listnode;
-		} else
+		if (count == 0)
 			continue;
+		listnode.weight = count * weight;
+		listnode.word = candidate;
+		wl_array[corrections_count++] = listnode;
+
 		if (corrections_count == corrections_size - 1) {
 			corrections_size *= 2;
 			wl_array = erealloc(wl_array, corrections_size * sizeof(*wl_array));
@@ -607,6 +607,9 @@ soundex(const char *word)
 		case 'r':
 			snd_buffer[i++] = '6';
 			break;
+		case '-':
+			snd_buffer[i++] = '_'; // We don't care about hyphens in soundex
+			break;
 		default:
 			free(soundex_code);
 			free(snd_buffer);
@@ -616,6 +619,11 @@ soundex(const char *word)
 	i = 1;
 	c = 0;
 	while (snd_buffer[i] != 0) {
+		if (snd_buffer[i] == '_') {
+			i++;
+			continue;
+		}
+
 		if (snd_buffer[i] == '-') {
 			c = 0;
 			i++;
@@ -634,7 +642,7 @@ soundex(const char *word)
 	i = 1;
 	soundex_code[0] = snd_buffer[0];
 	while (snd_buffer[i] != 0 && soundex_len != 4) {
-		if (snd_buffer[i] == '-') {
+		if (snd_buffer[i] == '-' || snd_buffer[i] == '_') {
 			i++;
 			continue;
 		}
