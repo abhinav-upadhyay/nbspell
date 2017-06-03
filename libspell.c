@@ -608,7 +608,9 @@ soundex(const char *word)
 			snd_buffer[i++] = '6';
 			break;
 		case '-':
-			snd_buffer[i++] = '_'; // We don't care about hyphens in soundex
+		case '\'':
+			/* Ignore hyphens or apostrophies */
+			snd_buffer[i++] = '_';
 			break;
 		default:
 			free(soundex_code);
