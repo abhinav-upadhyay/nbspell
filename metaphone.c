@@ -95,19 +95,17 @@ double_metaphone(const char *s)
 	st = padded;
 
 	if ((st[first] == 'G' && st[first + 1] == 'N') ||
-			(st[first] == 'K' && st[first + 1] == 'N') ||
-			(st[first] == 'P' && st[first + 1] == 'N') ||
-			(st[first] == 'W' && st[first + 1] == 'R') ||
-			(st[first] == 'P' && st[first + 1] == 'S')
-	   )
+	    (st[first] == 'K' && st[first + 1] == 'N') ||
+	    (st[first] == 'P' && st[first + 1] == 'N') ||
+	    (st[first] == 'W' && st[first + 1] == 'R') ||
+	    (st[first] == 'P' && st[first + 1] == 'S')
+	    )
 		pos++;
 
 	if (st[first] == 'X') {
 		pri[pri_offset++] = 'S';
 		pos++;
 	}
-
-
 	while (pos <= last) {
 		char ch = st[pos];
 		nxt.pri[0] = 0;
@@ -132,13 +130,16 @@ double_metaphone(const char *s)
 				nxt.offset = 1;
 			}
 		} else if (ch == 'C') {
-			if (pos > first + 1 && !is_vowel(st[pos - 2]) && strncmp(&st[pos -1], "ACH", 3) && st[pos + 2] != 'I' && (st[pos + 2] != 'E' || is_in(&st[pos - 2], 6, 2, "BACHER", "MACHER"))) {
+			if (pos > first + 1 && !is_vowel(st[pos - 2]) &&
+			    strncmp(&st[pos - 1], "ACH", 3) &&
+			    st[pos + 2] != 'I' &&
+			    (st[pos + 2] != 'E' || is_in(&st[pos - 2], 6, 2, "BACHER", "MACHER"))) {
 				nxt.pri[0] = 'K';
 				nxt.offset = 2;
 			} else if (pos == first && strncmp(&st[first], "CAESAR", 6) == 0) {
 				nxt.pri[0] = 'S';
 				nxt.offset = 2;
-			} else if (strncmp(&st[pos], "CHIA", 4) == 0 ) {
+			} else if (strncmp(&st[pos], "CHIA", 4) == 0) {
 				nxt.pri[0] = 'K';
 				nxt.offset = 2;
 			} else if (strncmp(&st[pos], "CH", 2) == 0) {
@@ -146,15 +147,25 @@ double_metaphone(const char *s)
 					nxt.pri[0] = 'K';
 					nxt.sec[0] = 'X';
 					nxt.offset = 2;
-				} else if (pos == first && (is_in(&st[pos+1], 5, 2, "HARAC", "HARIS") || is_in(&st[pos + 1], 3, 4, "HOR", "HYM", "HIA", "HEM")) && strncmp(&st[first], "CHORE", 5) == 1) {
+				} else if (pos == first && (
+						is_in(&st[pos + 1], 5, 2, "HARAC", "HARIS") ||
+						is_in(&st[pos + 1], 3, 4, "HOR", "HYM", "HIA", "HEM")
+				    ) && strncmp(&st[first], "CHORE", 5) == 1) {
 					nxt.pri[0] = 'K';
 					nxt.offset = 2;
-				} else if (is_in(&st[first], 4, 2, "VAN ", "VON ") || strncmp(&st[first], "SCH", 3) == 0 || is_in(&st[pos - 2], 6, 3, "ORCHES", "ARCHIT", "ORCHID") || (st[pos + 2] == 'T' || st[pos + 2] == 'S') || ((is_in(&st[pos - 1], 1, 4, "A", "O", "U", "E") || pos == first) && is_in(&st[pos + 2], 1, 9, "L", "R", "N", "M", "B", "H", "F", "V", "W"))) {
+				} else if (is_in(&st[first], 4, 2, "VAN ", "VON ") ||
+					    strncmp(&st[first], "SCH", 3) == 0 ||
+					    is_in(&st[pos - 2], 6, 3, "ORCHES", "ARCHIT", "ORCHID") ||
+					    (st[pos + 2] == 'T' ||
+						st[pos + 2] == 'S') ||
+					    ((is_in(&st[pos - 1], 1, 4, "A", "O", "U", "E") ||
+						    pos == first) &&
+					is_in(&st[pos + 2], 1, 9, "L", "R", "N", "M", "B", "H", "F", "V", "W"))) {
 					nxt.pri[0] = 'A';
 					nxt.offset = 2;
 				} else {
 					if (pos > first) {
-						if (st[first] == 'M' && st[first + 1 ] == 'C') {
+						if (st[first] == 'M' && st[first + 1] == 'C') {
 							nxt.pri[0] = 'K';
 							nxt.offset = 2;
 						} else {
@@ -211,7 +222,7 @@ double_metaphone(const char *s)
 					nxt.pri[1] = 0;
 					nxt.offset = 3;
 				} else {
-					if (is_in(&st[pos + 1], 1, 3, "C", "K", "Q") && !is_in(&st[pos+1], 2, 2, "CE", "CI")) {
+					if (is_in(&st[pos + 1], 1, 3, "C", "K", "Q") && !is_in(&st[pos + 1], 2, 2, "CE", "CI")) {
 						nxt.pri[0] = 'K';
 						nxt.pri[1] = 0;
 						nxt.offset = 2;
@@ -270,12 +281,15 @@ double_metaphone(const char *s)
 							nxt.offset = 2;
 						}
 					}
-				} else if ((pos > first + 1 && is_in(&st[pos - 2], 1, 3, "B", "H", "D")) || (pos > first + 2 && is_in(&st[pos - 3], 1, 3, "B", "H", "D")) || (pos > first + 3 && is_in(&st[pos - 3], 1, 2, "B", "H"))) {
+				} else if ((pos > first + 1 && is_in(&st[pos - 2], 1, 3, "B", "H", "D")) ||
+					    (pos > first + 2 && is_in(&st[pos - 3], 1, 3, "B", "H", "D")) ||
+				    (pos > first + 3 && is_in(&st[pos - 3], 1, 2, "B", "H"))) {
 					nxt.pri[0] = 0;
 					nxt.pri[1] = 0;
 					nxt.offset = 2;
 				} else {
-					if (pos > first + 2 && st[pos - 1] == 'U' && is_in(&st[pos - 3], 1, 5, "C", "G", "L", "R", "T")) {
+					if (pos > first + 2 && st[pos - 1] == 'U' &&
+					    is_in(&st[pos - 3], 1, 5, "C", "G", "L", "R", "T")) {
 						nxt.pri[0] = 'F';
 						nxt.pri[1] = 0;
 						nxt.offset = 2;
@@ -305,20 +319,28 @@ double_metaphone(const char *s)
 				nxt.sec[0] = 'L';
 				nxt.sec[1] = 0;
 				nxt.offset = 2;
-			} else if (pos == first && (st[pos + 1] == 'Y' || is_in(&st[pos + 1], 2, 11, "ES", "EP", "EB", "EL", "EY", "IB", "IL", "IN", "IE", "EI", "ER"))) {
+			} else if (pos == first && (st[pos + 1] == 'Y' ||
+					is_in(&st[pos + 1], 2, 11, "ES", "EP", "EB", "EL",
+				    "EY", "IB", "IL", "IN", "IE", "EI", "ER"))) {
 				nxt.pri[0] = 'K';
 				nxt.pri[1] = 0;
 				nxt.sec[0] = 'J';
 				nxt.sec[1] = 0;
 				nxt.offset = 2;
-			} else if ((strncmp(&st[pos + 1], "ER", 2) == 0 || st[pos + 1] == 'Y') && !is_in(&st[first], 6, 3, "DANGER", "RANGER", "MANGER") && !is_in(&st[pos - 1], 1, 2, "E", "I") && !is_in(&st[pos - 1], 3, 2, "RGY", "OGY")) {
+			} else if ((strncmp(&st[pos + 1], "ER", 2) == 0 || st[pos + 1] == 'Y') &&
+				    !is_in(&st[first], 6, 3, "DANGER", "RANGER", "MANGER") &&
+				    !is_in(&st[pos - 1], 1, 2, "E", "I") &&
+			    !is_in(&st[pos - 1], 3, 2, "RGY", "OGY")) {
 				nxt.pri[0] = 'K';
 				nxt.pri[1] = 0;
 				nxt.sec[0] = 'J';
 				nxt.sec[1] = 0;
 				nxt.offset = 2;
-			} else if (is_in(&st[pos + 1], 1, 3, "E", "I", "Y") || is_in(&st[pos - 1], 4, 2, "AGGI", "OGGI")) {
-				if (is_in(&st[first], 4, 2, "VON ", "VAN ") || strncmp(&st[first], "SCH", 3) == 0 || strncmp(&st[pos + 1], "ET", 2) == 0) {
+			} else if (is_in(&st[pos + 1], 1, 3, "E", "I", "Y") ||
+			    is_in(&st[pos - 1], 4, 2, "AGGI", "OGGI")) {
+				if (is_in(&st[first], 4, 2, "VON ", "VAN ") ||
+				    strncmp(&st[first], "SCH", 3) == 0 ||
+				    strncmp(&st[pos + 1], "ET", 2) == 0) {
 					nxt.pri[0] = 'K';
 					nxt.pri[1] = 0;
 					nxt.offset = 2;
@@ -345,7 +367,8 @@ double_metaphone(const char *s)
 				nxt.offset = 1;
 			}
 		} else if (ch == 'H') {
-			if ((pos == first || is_vowel(st[pos - 1])) && is_vowel(st[pos + 1])) {
+			if ((pos == first || is_vowel(st[pos - 1])) &&
+			    is_vowel(st[pos + 1])) {
 				nxt.pri[0] = 'H';
 				nxt.pri[1] = 0;
 				nxt.offset = 2;
@@ -355,8 +378,10 @@ double_metaphone(const char *s)
 				nxt.offset = 2;
 			}
 		} else if (ch == 'J') {
-			if (strncmp(&st[pos], "JOSE", 4) == 0 || strncmp(&st[first], "SAN ", 4) == 0) {
-				if ((pos == first && st[pos + 4] == ' ') || strncmp(&st[first], "SAN ", 4) == 0) {
+			if (strncmp(&st[pos], "JOSE", 4) == 0 ||
+			    strncmp(&st[first], "SAN ", 4) == 0) {
+				if ((pos == first && st[pos + 4] == ' ') ||
+				    strncmp(&st[first], "SAN ", 4) == 0) {
 					nxt.pri[0] = 'H';
 					nxt.pri[1] = 0;
 				} else {
@@ -371,7 +396,8 @@ double_metaphone(const char *s)
 				nxt.sec[0] = 'A';
 				nxt.sec[1] = 0;
 			} else {
-				if (is_vowel(st[pos - 1])  && !is_sl_germanic && is_in(&st[pos + 1], 1, 2, "A", "O")) {
+				if (is_vowel(st[pos - 1]) && !is_sl_germanic &&
+				    is_in(&st[pos + 1], 1, 2, "A", "O")) {
 					nxt.pri[0] = 'J';
 					nxt.pri[1] = 0;
 					nxt.sec[0] = 'H';
@@ -383,7 +409,9 @@ double_metaphone(const char *s)
 						nxt.sec[0] = ' ';
 						nxt.sec[1] = 0;
 					} else {
-						if (!is_in(&st[pos + 1], 1, 8, "L", "T", "K", "S", "N", "M", "B", "Z") && !is_in(&st[pos - 1], 1, 3, "S", "K", "L")) {
+						if (!is_in(&st[pos + 1], 1, 8, "L", "T", "K", "S", "N",
+							"M", "B", "Z") &&
+						    !is_in(&st[pos - 1], 1, 3, "S", "K", "L")) {
 							nxt.pri[0] = 'J';
 							nxt.pri[1] = 0;
 						} else {
@@ -410,7 +438,11 @@ double_metaphone(const char *s)
 			}
 		} else if (ch == 'L') {
 			if (st[pos + 1] == 'L') {
-				if ((pos == last - 2 && is_in(&st[pos - 1], 4, 3, "ILLO", "ILLA", "ALLE")) || ((is_in(&st[last - 1], 2, 2, "AS", "OS") || st[last] == 'A' || st[last] == 'O') && strncmp(&st[pos - 1], "ALLE", 4) == 0)) {
+				if ((pos == last - 2 &&
+					is_in(&st[pos - 1], 4, 3, "ILLO", "ILLA", "ALLE")) ||
+				    ((is_in(&st[last - 1], 2, 2, "AS", "OS") ||
+					    st[last] == 'A' || st[last] == 'O') &&
+					strncmp(&st[pos - 1], "ALLE", 4) == 0)) {
 					nxt.pri[0] = 'L';
 					nxt.pri[1] = 0;
 					nxt.sec[0] = ' ';
@@ -427,7 +459,10 @@ double_metaphone(const char *s)
 				nxt.offset = 1;
 			}
 		} else if (ch == 'M') {
-			if ((strncmp(&st[pos + 1], "UMB", 3) == 0 && (pos + 1 == last || strncmp(&st[pos + 2], "ER", 2) == 0)) || st[pos + 1] == 'M') {
+			if ((strncmp(&st[pos + 1], "UMB", 3) == 0 &&
+				(pos + 1 == last ||
+				    strncmp(&st[pos + 2], "ER", 2) == 0)) ||
+			    st[pos + 1] == 'M') {
 				nxt.pri[0] = 'M';
 				nxt.pri[1] = 0;
 				nxt.offset = 2;
@@ -471,7 +506,9 @@ double_metaphone(const char *s)
 				nxt.offset = 1;
 			}
 		} else if (ch == 'R') {
-			if (pos == last && !is_sl_germanic && strncmp(&st[pos - 2], "IE", 2) == 0 && !is_in(&st[pos - 4], 2, 2, "ME", "MA")) {
+			if (pos == last && !is_sl_germanic &&
+			    strncmp(&st[pos - 2], "IE", 2) == 0 &&
+			    !is_in(&st[pos - 4], 2, 2, "ME", "MA")) {
 				nxt.pri[0] = 0;
 				nxt.pri[1] = 0;
 				nxt.sec[0] = 'R';
@@ -505,7 +542,8 @@ double_metaphone(const char *s)
 					nxt.pri[1] = 0;
 					nxt.offset = 2;
 				}
-			} else if (is_in(&st[pos], 3, 2, "SIO", "SIA") || strncmp(&st[pos], "SIAN", 4) == 0) {
+			} else if (is_in(&st[pos], 3, 2, "SIO", "SIA") ||
+			    strncmp(&st[pos], "SIAN", 4) == 0) {
 				if (!is_sl_germanic) {
 					nxt.pri[0] = 'S';
 					nxt.pri[1] = 0;
@@ -517,7 +555,9 @@ double_metaphone(const char *s)
 					nxt.pri[1] = 0;
 					nxt.offset = 3;
 				}
-			} else if ((pos == first && is_in(&st[pos + 1], 1, 4, "M", "N", "L", "W")) || st[pos + 1] == 'Z') {
+			} else if ((pos == first &&
+					is_in(&st[pos + 1], 1, 4, "M", "N", "L", "W")) ||
+			    st[pos + 1] == 'Z') {
 				nxt.pri[0] = 'S';
 				nxt.pri[1] = 0;
 				nxt.sec[0] = 'X';
@@ -541,7 +581,8 @@ double_metaphone(const char *s)
 							nxt.offset = 3;
 						}
 					} else {
-						if (pos == first && !is_vowel(st[first + 3]) && st[first + 3] != 'W') {
+						if (pos == first && !is_vowel(st[first + 3]) &&
+						    st[first + 3] != 'W') {
 							nxt.pri[0] = 'X';
 							nxt.pri[1] = 0;
 							nxt.sec[0] = 'S';
@@ -583,8 +624,11 @@ double_metaphone(const char *s)
 				nxt.pri[0] = 'X';
 				nxt.pri[1] = 0;
 				nxt.offset = 3;
-			} else if (strncmp(&st[pos], "TH", 2) == 0 || strncmp(&st[pos], "TTH", 3) == 0) {
-				if (is_in(&st[pos + 2], 2, 2, "OM", "AM") || is_in(&st[first], 4, 2, "VON ", "VAN ") || strncmp(&st[first], "SCH", 3) == 0) {
+			} else if (strncmp(&st[pos], "TH", 2) == 0 ||
+			    strncmp(&st[pos], "TTH", 3) == 0) {
+				if (is_in(&st[pos + 2], 2, 2, "OM", "AM") ||
+				    is_in(&st[first], 4, 2, "VON ", "VAN ") ||
+				    strncmp(&st[first], "SCH", 3) == 0) {
 					nxt.pri[0] = 'T';
 					nxt.pri[1] = 0;
 					nxt.offset = 2;
@@ -599,7 +643,7 @@ double_metaphone(const char *s)
 				nxt.pri[0] = 'T';
 				nxt.pri[1] = 0;
 				nxt.offset = 2;
-			} else  {
+			} else {
 				nxt.pri[0] = 'T';
 				nxt.pri[1] = 0;
 				nxt.offset = 1;
@@ -619,7 +663,8 @@ double_metaphone(const char *s)
 				nxt.pri[0] = 'R';
 				nxt.pri[1] = 0;
 				nxt.offset = 2;
-			} else if (pos == first && (is_vowel(st[pos + 1]) || strncmp(&st[pos], "WH", 2) == 0)) {
+			} else if (pos == first && (is_vowel(st[pos + 1]) ||
+				strncmp(&st[pos], "WH", 2) == 0)) {
 				if (is_vowel(st[pos + 1])) {
 					nxt.pri[0] = 'A';
 					nxt.pri[1] = 0;
@@ -631,7 +676,9 @@ double_metaphone(const char *s)
 					nxt.pri[1] = 0;
 					nxt.offset = 1;
 				}
-			} else if ((pos == last && is_vowel(st[pos - 1])) || is_in(&st[pos - 1], 5, 4, "EWSKI", "EWSKY", "OWSKI", "OWSKY") || strncmp(&st[first], "SCH", 3) == 0) {
+			} else if ((pos == last && is_vowel(st[pos - 1])) ||
+				    is_in(&st[pos - 1], 5, 4, "EWSKI", "EWSKY", "OWSKI", "OWSKY") ||
+			    strncmp(&st[first], "SCH", 3) == 0) {
 				nxt.pri[0] = 0;
 				nxt.pri[1] = 0;
 				nxt.sec[0] = 'F';
@@ -651,7 +698,8 @@ double_metaphone(const char *s)
 		} else if (ch == 'X') {
 			nxt.pri[0] = 0;
 			nxt.pri[1] = 0;
-			if (!(pos == last && (is_in(&st[pos - 3], 3, 2, "IAU", "EAU") || is_in(&st[pos - 2], 2, 2, "AU", "OU")))) {
+			if (!(pos == last && (is_in(&st[pos - 3], 3, 2, "IAU", "EAU") ||
+				    is_in(&st[pos - 2], 2, 2, "AU", "OU")))) {
 				nxt.pri[0] = 'K';
 				nxt.pri[1] = 'S';
 			}
@@ -663,7 +711,8 @@ double_metaphone(const char *s)
 			if (st[pos + 1] == 'H') {
 				nxt.pri[0] = 'J';
 				nxt.pri[1] = 0;
-			} else if (is_in(&st[pos + 1], 2, 3, "ZO", "ZI", "ZA") || (is_sl_germanic && pos > first && st[pos - 1] != 'T')) {
+			} else if (is_in(&st[pos + 1], 2, 3, "ZO", "ZI", "ZA") ||
+			    (is_sl_germanic && pos > first && st[pos - 1] != 'T')) {
 				nxt.pri[0] = 'S';
 				nxt.pri[1] = 0;
 				nxt.sec[0] = 'T';
@@ -677,7 +726,6 @@ double_metaphone(const char *s)
 			else
 				nxt.offset = 1;
 		}
-
 		if (nxt.sec[0] == 0) {
 			if (nxt.pri[0]) {
 				pri[pri_offset++] = nxt.pri[0];
