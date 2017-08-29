@@ -86,3 +86,15 @@ trie_get(trie_t * t, const char *key)
 
 	return trie_get(t->left, key);
 }
+
+void
+trie_destroy(trie_t *t)
+{
+	if (t->left)
+		trie_destroy(t->left);
+	if (t->middle)
+		trie_destroy(t->middle);
+	if (t->right)
+		trie_destroy(t->right);
+	free(t);
+}

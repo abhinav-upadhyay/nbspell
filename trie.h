@@ -43,5 +43,6 @@ typedef struct trie_t {
 trie_t *trie_init(void);
 void trie_insert(trie_t **, const char *, size_t);
 size_t trie_get(trie_t *, const char *);
+void trie_destroy(trie_t *);
 
 #endif
