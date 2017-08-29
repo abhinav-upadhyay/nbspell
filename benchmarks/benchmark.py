@@ -2,6 +2,7 @@
 
 import argparse
 import subprocess
+import sys
 import time
 
 def parse_testdata(filepath):
@@ -23,8 +24,12 @@ def parse_testdata(filepath):
 def get_corrections(tests, count):
     predicted_data = {}
     proc = subprocess.Popen(['./spell', '-c', count], stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout=subprocess.PIPE)
     out, err  = proc.communicate(input=tests)
+    if proc.returncode != 0:
+        print 'spell failed with error: %s' % str(err)
+        print str(out)
+        sys.exit(1)
     for line in out.split('\n'):
         if line == '':
             continue
