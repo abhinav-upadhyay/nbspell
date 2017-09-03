@@ -3,23 +3,17 @@ LFLAGS=-lbsd
 TOOL_NBPERF=nbperf
 TOOL_SED=sed
 CC=clang
-all:	spell dictionary spell2
+all:	spell dictionary
 
-spell:	libspell.o spell.o rb.o mi_vector_hash.o
-	${CC} -o spell libspell.o spell.o rb.o mi_vector_hash.o  ${LFLAGS}
+spell:	libspell.o spell.o rb.o mi_vector_hash.o trie.o
+	${CC} -o spell libspell.o spell.o rb.o mi_vector_hash.o trie.o  ${LFLAGS}
 
 
-spell2:	spell2.o rb.o libspell.o mi_vector_hash.o
-	${CC} -o spell2 libspell.o spell2.o rb.o mi_vector_hash.o  ${LFLAGS}
-
-dictionary:	dictionary.o libspell.o rb.o mi_vector_hash.o
-	${CC} -o dictionary libspell.o dictionary.o rb.o mi_vector_hash.o ${LFLAGS}
+dictionary:	dictionary.o libspell.o rb.o mi_vector_hash.o trie.o spellutils.o
+	${CC} -o dictionary libspell.o dictionary.o rb.o mi_vector_hash.o trie.o spellutils.o ${LFLAGS}
 
 spell.o:	spell.c 
 	${CC} ${CFLAGS} spell.c
-
-spell2.o:	spell2.c 
-	${CC} ${CFLAGS} spell2.c
 
 dictionary.o:	dictionary.c 
 	${CC} ${CFLAGS} dictionary.c
@@ -29,6 +23,12 @@ libspell.o:	libspell.c mi_vector_hash.c
 
 rb.o:	rb.c
 	${CC} ${CFLAGS} rb.c
+
+trie.o:	trie.c
+	${CC} ${CFLAGS} trie.c
+
+spellutils.o:	spellutils.c
+	${CC} ${CFLAGS} spellutils.c
 
 mi_vector_hash.o:	mi_vector_hash.c
 	${CC} ${CFLAGS} mi_vector_hash.c

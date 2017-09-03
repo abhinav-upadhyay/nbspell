@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2016 Abhinav Upadhyay <er.abhinav.upadhyay@gmail.com>
+ * Copyright (c) 2017 Abhinav Upadhyay <er.abhinav.upadhyay@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,9 @@
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+//#include <util.h>
 
 #include "libspell.h"
 
@@ -38,41 +41,107 @@
 static void
 usage(void)
 {
-	(void) fprintf(stderr, "Usage: spell input_file\n");
+	(void) fprintf(stderr, "Usage: spell [-c number of suggestions]  [-i input_file] [-w whitelist]\n");
 	exit(1);
+}
+
+
+static void
+do_unigram(FILE *f, const char *whitelist_filepath, size_t nsuggestions)
+{
+
+	char *word = NULL;
+	size_t wordsize = 0;
+	ssize_t bytes_read;
+	spell_t *spell = NULL;
+	char *line = NULL;
+	size_t linesize = 0;
+	word_count *wcnode;
+	word_count wc;
+	wc.count = 0;
+	char *sanitized_word = NULL;
+
+
+	while ((bytes_read = getline(&line, &linesize, f)) != -1) {
+		line[--bytes_read] = 0;
+		if (line[bytes_read] == '\r')
+			line[bytes_read] = 0;
+		char *templine = line;
+		if (spell == NULL)
+			spell = spell_init("dict/unigram.txt", whitelist_filepath);
+		while (*templine) {
+			wordsize = strcspn(templine, " ");
+			templine[wordsize] = 0;
+			word = templine;
+			templine += wordsize + 1;
+			if (strlen(word) <= 1)
+				continue;
+			while (*templine == ' ')
+				templine++;
+
+			lower(word);
+			sanitized_word = sanitize_string(word);
+			if (!sanitized_word || !sanitized_word[0]) {
+				free(sanitized_word);
+				continue;
+			}
+
+			if (spell_is_known_word(spell, sanitized_word, 1)) {
+				free(sanitized_word);
+				continue;
+			}
+
+			char **corrections = spell_get_suggestions(spell, sanitized_word, nsuggestions);
+			size_t i = 0;
+			if (corrections) {
+				printf("%s: ", word);
+				while(corrections[i] != NULL) {
+					if (i > 0)
+						printf("%s", ",");
+					char *correction = corrections[i++];
+					printf("%s", correction);
+				}
+				printf("\n");
+			}
+			free_list(corrections);
+			free(sanitized_word);
+		}
+		free(line);
+		line = NULL;
+	}
+    spell_destroy(spell);
+	free(line);
 }
 
 int
 main(int argc, char **argv)
 {
-	if (argc < 2)
-		usage();
+	FILE *input = stdin;
+	char *whitelist_filepath = NULL;
+	int ch;
+	size_t nsuggestions = 1;
 
-	char *input_filename = argv[1];
-	//XXX: Do permission checks on the file?
-	FILE *f = fopen(input_filename, "r");
-	if (f == NULL)
-		err(EXIT_FAILURE, "fopen failed");
-
-	char *word = NULL;
-	size_t wordsize = 0;
-	ssize_t bytesread;
-	while((bytesread = getdelim(&word, &wordsize, ' ', f)) != -1) {
-		word[bytesread -1] = 0;
-		if (!isalpha(word[bytesread -2]))
-			word[bytesread -2] = 0;
-
-		if (is_known_word(word))
-			continue;
-
-		char **corrections = spell(word);
-		size_t i = 0;
-		while(corrections && corrections[i] != NULL) {
-			char *correction = corrections[i++];
-			printf("%s: %s\n", word, correction);
+	while ((ch = getopt(argc, argv, "c:i:w:")) != -1) {
+		switch (ch) {
+		case 'c':
+			nsuggestions = strtol(optarg, NULL, 10);
+			break;
+		case 'i':
+			input = fopen(optarg, "r");
+			if (input == NULL)
+				err(EXIT_FAILURE, "Failed to open %s", optarg);
+			break;
+		case 'w':
+			whitelist_filepath = optarg;
+			break;
+		default:
+			usage();
+			break;
 		}
-		free_list(corrections);
 	}
-	fclose(f);
+
+	do_unigram(input, whitelist_filepath, nsuggestions);
+	if (input != stdin)
+		fclose(input);
 	return 0;
 }
