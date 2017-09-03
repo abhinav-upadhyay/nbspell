@@ -3,7 +3,7 @@ LFLAGS=-lbsd
 TOOL_NBPERF=nbperf
 TOOL_SED=sed
 CC=clang
-all:	spell dictionary
+all:	spell dictionary soundex
 
 spell:	libspell.o spell.o rb.o mi_vector_hash.o trie.o
 	${CC} -o spell libspell.o spell.o rb.o mi_vector_hash.o trie.o  ${LFLAGS}
@@ -11,6 +11,10 @@ spell:	libspell.o spell.o rb.o mi_vector_hash.o trie.o
 
 dictionary:	dictionary.o libspell.o rb.o mi_vector_hash.o trie.o spellutils.o
 	${CC} -o dictionary libspell.o dictionary.o rb.o mi_vector_hash.o trie.o spellutils.o ${LFLAGS}
+
+soundex:	soundex.o libspell.o rb.o mi_vector_hash.o trie.o
+	${CC} -o soundex soundex.o libspell.o rb.o mi_vector_hash.o trie.o
+
 
 spell.o:	spell.c 
 	${CC} ${CFLAGS} spell.c
