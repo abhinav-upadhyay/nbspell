@@ -3,7 +3,7 @@ LFLAGS=-lbsd
 TOOL_NBPERF=nbperf
 TOOL_SED=sed
 CC=clang
-all:	spell dictionary soundex
+all:	spell dictionary soundex metaphone
 
 spell:	libspell.o spell.o rb.o mi_vector_hash.o trie.o
 	${CC} -o spell libspell.o spell.o rb.o mi_vector_hash.o trie.o  ${LFLAGS}
@@ -13,8 +13,13 @@ dictionary:	dictionary.o libspell.o rb.o mi_vector_hash.o trie.o spellutils.o
 	${CC} -o dictionary libspell.o dictionary.o rb.o mi_vector_hash.o trie.o spellutils.o ${LFLAGS}
 
 soundex:	soundex.o libspell.o rb.o mi_vector_hash.o trie.o
-	${CC} -o soundex soundex.o libspell.o rb.o mi_vector_hash.o trie.o
+	${CC} -o soundex soundex.o libspell.o rb.o mi_vector_hash.o trie.o ${LFLAGS}
 
+metaphone:	metaphone.o libspell.o rb.o trie.o
+	${CC} -o metaphone metaphone.o libspell.o rb.o trie.o ${LFLAGS}
+
+metaphone.o:	metaphone.c
+	${CC} ${CFLAGS} metaphone.c
 
 spell.o:	spell.c 
 	${CC} ${CFLAGS} spell.c
@@ -33,6 +38,9 @@ trie.o:	trie.c
 
 spellutils.o:	spellutils.c
 	${CC} ${CFLAGS} spellutils.c
+
+metaphone.o:	metaphone.c
+	${CC} ${CFLAGS} metaphone.c
 
 mi_vector_hash.o:	mi_vector_hash.c
 	${CC} ${CFLAGS} mi_vector_hash.c
