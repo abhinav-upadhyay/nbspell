@@ -29,6 +29,7 @@
 
 #ifndef LIBSPELL_H
 #define LIBSPELL_H
+#define _GNU_SOURCE
 
 #include "rbtree.h"
 #include "trie.h"
@@ -53,6 +54,7 @@ spell_t *spell_init(const char *, const char *);
 int spell_is_known_word(spell_t *, const char *, int);
 char **spell_get_suggestions(spell_t *, char *, size_t);
 char *soundex(const char *);
+char *double_metaphone(const char *);
 void spell_destroy(spell_t *);
 int compare_words(void *, const void *, const void *);
 char *lower(char *);
