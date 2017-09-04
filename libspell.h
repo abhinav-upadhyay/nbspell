@@ -29,7 +29,6 @@
 
 #ifndef LIBSPELL_H
 #define LIBSPELL_H
-#define _GNU_SOURCE
 
 #include "rbtree.h"
 #include "trie.h"

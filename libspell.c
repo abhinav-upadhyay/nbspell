@@ -27,8 +27,10 @@
  * SUCH DAMAGE.
  */
 
+#define _GNU_SOURCE
 #include <assert.h>
 #include <ctype.h>
+#include <err.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -89,7 +91,6 @@ free_word_list(word_list *list)
 		free(nodep);
 		nodep = temp;
 	}
-    free(list);
 }
 
 static void
@@ -840,10 +841,10 @@ spell_destroy(spell_t * spell)
 	if (spell->ngrams_tree != NULL)
 		free_tree(spell->ngrams_tree);
     if (spell->soundex_tree != NULL) {
-        while ((list = RB_TREE_MIN(spell->soundex_tree) != NULL)) {
+        while ((list = (word_list *) RB_TREE_MIN(spell->soundex_tree) != NULL)) {
             rb_tree_remove_node(spell->soundex_tree, list);
             free_word_list(list);
-            free(list);
+            //free(list);
         }
         free(spell->soundex_tree);
     }
@@ -963,8 +964,8 @@ double_metaphone(const char *s)
 	size_t first = 2;
 	size_t last = first + len - 1;
 	size_t pos = first;
-	char *pri = malloc(len);
-	char *sec = malloc(len);
+	char *pri = malloc(len + 1);
+	char *sec = malloc(len + 1);
 	size_t pri_offset = 0;
 	size_t sec_offset = 0;
 	struct next nxt;
@@ -1132,7 +1133,7 @@ double_metaphone(const char *s)
 				nxt.offset = 1;
 			}
 		} else if (ch == 'F') {
-			if (st[pos + 1] = 'F') {
+			if (st[pos + 1] == 'F') {
 				nxt.pri[0] = 'F';
 				nxt.pri[1] = 0;
 				nxt.offset = 2;

@@ -18,9 +18,6 @@ soundex:	soundex.o libspell.o rb.o mi_vector_hash.o trie.o
 metaphone:	metaphone.o libspell.o rb.o trie.o
 	${CC} -o metaphone metaphone.o libspell.o rb.o trie.o ${LFLAGS}
 
-metaphone.o:	metaphone.c
-	${CC} ${CFLAGS} metaphone.c
-
 spell.o:	spell.c 
 	${CC} ${CFLAGS} spell.c
 
