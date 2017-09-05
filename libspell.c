@@ -834,21 +834,17 @@ free_tree(rb_tree_t * tree)
 void
 spell_destroy(spell_t * spell)
 {
-//	free_tree(spell->dictionary);
-
-    trie_destroy(spell->dictionary);
     word_list *list;
+    trie_destroy(spell->dictionary);
 	if (spell->ngrams_tree != NULL)
 		free_tree(spell->ngrams_tree);
-    if (spell->soundex_tree != NULL) {
-        while ((list = (word_list *) RB_TREE_MIN(spell->soundex_tree) != NULL)) {
-            rb_tree_remove_node(spell->soundex_tree, list);
-            free_word_list(list);
-            //free(list);
-        }
-        free(spell->soundex_tree);
-    }
-
+	if (spell->soundex_tree != NULL) {
+		while ((list = (word_list *) RB_TREE_MIN(spell->soundex_tree)) != NULL) {
+			rb_tree_remove_node(spell->soundex_tree, list);
+			free_word_list(list);
+		}
+		free(spell->soundex_tree);
+	}
 	free(spell);
 }
 
