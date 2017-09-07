@@ -42,11 +42,17 @@ typedef struct word_count {
 	rb_node_t rbtree;
 } word_count;
 
+typedef struct wlist {
+	unsigned char *front;
+	unsigned char *back;
+} wlist;
+
 typedef struct spell_t {
-	struct trie_t *dictionary;
+	wlist *dictionary;
 	rb_tree_t *ngrams_tree;
 	rb_tree_t *soundex_tree;
 } spell_t;
+
 
 void free_list(char **);
 spell_t *spell_init(const char *, const char *);
@@ -58,4 +64,6 @@ void spell_destroy(spell_t *);
 int compare_words(void *, const void *, const void *);
 char *lower(char *);
 char * sanitize_string(char *);
+char *look(u_char *, u_char *, u_char *);
+long get_count(char *, char);
 #endif
