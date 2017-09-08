@@ -1249,7 +1249,7 @@ double_metaphone(const char *s)
 			} else {
 				nxt.pri[0] = 0;
 				nxt.pri[1] = 0;
-				nxt.offset = 2;
+				nxt.offset = 1;
 			}
 		} else if (ch == 'J') {
 			if (strncmp(&st[pos], "JOSE", 4) == 0 ||
