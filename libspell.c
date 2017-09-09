@@ -464,6 +464,7 @@ get_wlist(const char *fname)
 		err(EXIT_FAILURE, "malloc failed");
 	w->front = front;
 	w->back = back;
+	w->len = sb.st_size;
 	close(fd);
 	return w;
 }
@@ -483,11 +484,10 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 	};
 
 	spell_t *spellt;
-	trie_t *words_tree;
+	trie_t *words_tree = NULL;
 	static rb_tree_t *ngrams_tree;
 	static rb_tree_t *soundex_tree;
 
-	words_tree = trie_init();
 	spellt = malloc(sizeof(*spellt));
 	spellt->dictionary = get_wlist("dict/unigram.txt");
 	spellt->ngrams_tree = NULL;
@@ -509,18 +509,6 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 			return NULL;
 		}
 	}
-
-	if ((f = fopen(dictionary_path, "r")) == NULL) {
-		spell_destroy(spellt);
-		return NULL;
-	}
-
-	if ((parse_file_and_generate_trie(f, words_tree, '\t')) < 0) {
-		spell_destroy(spellt);
-		fclose(f);
-		return NULL;
-	}
-    fclose(f);
 
 	if ((f = fopen("dict/bigram.txt", "r")) != NULL) {
 		ngrams_tree = malloc(sizeof(*ngrams_tree));
@@ -865,6 +853,8 @@ spell_destroy(spell_t * spell)
 	word_list *list;
 //	trie_destroy(spell->dictionary);
 
+	munmap(spell->dictionary->front, spell->dictionary->len);
+	free(spell->dictionary);
 	if (spell->ngrams_tree != NULL)
 		free_tree(spell->ngrams_tree);
 
