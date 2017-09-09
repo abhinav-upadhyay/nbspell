@@ -27,20 +27,32 @@
  * SUCH DAMAGE.
  */
 
-#include <ctype.h>
 #include <err.h>
-#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
+#include "libspell.h"
+#include "websters.c"
 
 int
 main(int argc, char **argv)
 {
-	char *s = argv[1];
-	char *dm  = double_metaphone(s);
-	printf("%s\n", dm);
-	free(dm);
+	size_t i;
+	char *soundex_code;
+	FILE *out = fopen("dict/metaphone.txt", "w");
+	if (out == NULL)
+		err(EXIT_FAILURE, "Failed to open soundex");
+
+	for (i = 0; i < sizeof(dict) / sizeof(dict[0]); i++) {
+		soundex_code = double_metaphone(dict[i]);
+		if (soundex_code == NULL) {
+			warnx("No soundex code found for %s", dict[i++]);
+			continue;
+		}
+		fprintf(out, "%s\t%s\n", soundex_code, dict[i]);
+		free(soundex_code);
+	}
+
+	fclose(out);
 	return 0;
 }

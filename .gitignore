@@ -35,3 +35,6 @@ spell
 dict.c
 .gdbinit
 *.core
+
+# editor files
+*.swp

@@ -30,6 +30,7 @@
 #define _GNU_SOURCE
 #include <assert.h>
 #include <ctype.h>
+#include <fcntl.h>
 #include <err.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -38,6 +39,10 @@
 #include <string.h>
 #include <stdint.h>
 //#include <bsd/util.h>
+#include <unistd.h>
+//#include <util.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 
 #include "libspell.h"
 #include "trie.h"
@@ -59,7 +64,6 @@ typedef struct next {
 	char sec[2];
 	size_t offset;
 } next;
-
 
 /*
  * Converts a word to lower case
@@ -305,7 +309,8 @@ spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n)
 		weight = nodep->weight;
 		nodep = nodep->next;
 		word_list listnode;
-		size_t count = trie_get(spell->dictionary, candidate);
+		char *front = look(candidate, spell->dictionary->front, spell->dictionary->back);
+		size_t count = (size_t) (front != NULL? get_count(front, '\t'): 0);
 		if (count == 0)
 			continue;
 		listnode.weight = count * weight;
@@ -442,6 +447,29 @@ parse_file_and_generate_tree(FILE *f, rb_tree_t *tree, char field_separator)
 	return 0;
 }
 
+static wlist *
+get_wlist(const char *fname)
+{
+	struct stat sb;
+	int fd = open(fname, 'r');
+	if (fd == -1)
+		err(EXIT_FAILURE, "Failed to open %s", fname);
+	fstat(fd, &sb);
+	char *front = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	if (front == NULL)
+		err(EXIT_FAILURE, "mmap failed for %s", fname);
+	char *back = front + sb.st_size;
+	wlist *w = malloc(sizeof(wlist));
+	if (w == NULL)
+		err(EXIT_FAILURE, "malloc failed");
+	w->front = front;
+	w->back = back;
+	close(fd);
+	return w;
+}
+
+
+
 spell_t *
 spell_init(const char *dictionary_path, const char *whitelist_filepath)
 {
@@ -461,7 +489,7 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 
 	words_tree = trie_init();
 	spellt = malloc(sizeof(*spellt));
-	spellt->dictionary = words_tree;
+	spellt->dictionary = get_wlist("dict/unigram.txt");
 	spellt->ngrams_tree = NULL;
 	spellt->soundex_tree = NULL;
 
@@ -759,7 +787,7 @@ int
 spell_is_known_word(spell_t *spell, const char *word, int ngram)
 {
 	if (ngram == 1)
-		return trie_get(spell->dictionary, word) != 0;
+		return look((u_char *) word, (u_char *)spell->dictionary->front, (u_char *)spell->dictionary->back) != 0;
 	else if (ngram == 2) {
 		word_count wc;
 		wc.word = (char *) word;
@@ -834,12 +862,14 @@ free_tree(rb_tree_t * tree)
 void
 spell_destroy(spell_t * spell)
 {
-    word_list *list;
-    trie_destroy(spell->dictionary);
+	word_list *list;
+//	trie_destroy(spell->dictionary);
+
 	if (spell->ngrams_tree != NULL)
 		free_tree(spell->ngrams_tree);
+
 	if (spell->soundex_tree != NULL) {
-		while ((list = (word_list *) RB_TREE_MIN(spell->soundex_tree)) != NULL) {
+		while((list = (word_list *) RB_TREE_MIN(spell->soundex_tree)) != NULL) {
 			rb_tree_remove_node(spell->soundex_tree, list);
 			free_word_list(list);
 		}

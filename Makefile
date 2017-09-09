@@ -6,12 +6,13 @@ MAN.dictionary=		# none
 MAN.soundex=		# none
 MAN.trie_test=		# none
 
-PROGS=			dictionary spell bigspell soundex trie_test
-SRCS.spell=		spell.c libspell.c trie.c
-SRCS.bigspell=		bigspell.c libspell.c trie.c
-SRCS.dictionary=	dictionary.c libspell.c spellutils.c trie.c
-SRCS.soundex=	soundex.c libspell.c trie.c
+PROGS=			dictionary spell bigspell soundex trie_test metaphone
+SRCS.spell=		spell.c libspell.c trie.c look.c
+SRCS.bigspell=		bigspell.c libspell.c trie.c look.c
+SRCS.dictionary=	dictionary.c libspell.c spellutils.c trie.c look.c
+SRCS.soundex=	soundex.c libspell.c trie.c look.c
 SRCS.trie_test=	trie_test.c trie.c
+SRCS.metaphone=	metaphone.c libspell.c trie.c look.c
 
 LDADD+= -lutil
 
