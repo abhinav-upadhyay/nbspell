@@ -15,6 +15,7 @@ SRCS.trie_test=	trie_test.c trie.c
 SRCS.metaphone=	metaphone.c libspell.c trie.c look.c
 
 LDADD+= -lutil
+LDADD+= -lm
 
 BINDIR=		/usr/bin
 

@@ -30,7 +30,7 @@
 #ifndef LIBSPELL_H
 #define LIBSPELL_H
 
-#include "rbtree.h"
+#include <sys/rbtree.h>
 #include "trie.h"
 
 /* Number of possible arrangements of a word of length ``n'' at edit distance 1 */

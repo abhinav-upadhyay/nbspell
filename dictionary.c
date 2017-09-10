@@ -35,10 +35,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-//#include <util.h>
+#include <util.h>
 
 #include <sys/queue.h>
-#include "rbtree.h"
+
 #include "libspell.h"
 #include "spellutils.h"
 
