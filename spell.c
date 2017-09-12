@@ -91,19 +91,27 @@ do_unigram(FILE *f, const char *whitelist_filepath, size_t nsuggestions)
 				continue;
 			}
 
-			char **corrections = spell_get_suggestions(spell, sanitized_word, nsuggestions);
+			word_list *corrections = spell_get_suggestions(spell, sanitized_word, nsuggestions);
+			word_list *node = corrections;
 			size_t i = 0;
 			if (corrections) {
 				printf("%s: ", word);
-				while(corrections[i] != NULL) {
+				while (node != NULL) {
+				//while(corrections[i] != NULL) {
 					if (i > 0)
 						printf("%s", ",");
-					char *correction = corrections[i++];
-					printf("%s", correction);
+					//char *correction = corrections[i++];
+					//printf("%s", correction);
+					printf("%s", node->word);
+					node = node->next;
+					i++;
 				}
 				printf("\n");
 			}
-			free_list(corrections);
+			free_word_list(corrections);
+//			free_list(corrections);
+			//if (corrections)
+			//	free_word_list(corrections);
 			free(sanitized_word);
 		}
 		free(line);

@@ -1,25 +1,33 @@
-CFLAGS=-Wall -c -std=gnu99 -O2 -g
-LFLAGS=-lbsd 
+CFLAGS=-Wall -c -std=gnu99 -O0 -g
+LFLAGS=-lbsd  -lm
 TOOL_NBPERF=nbperf
 TOOL_SED=sed
 CC=clang
-all:	spell dictionary soundex metaphone
+all:	spell dictionary soundex metaphone spell2
 
-spell:	libspell.o spell.o rb.o mi_vector_hash.o trie.o
-	${CC} -o spell libspell.o spell.o rb.o mi_vector_hash.o trie.o  ${LFLAGS}
+spell:	libspell.o spell.o rb.o mi_vector_hash.o trie.o look.o
+	${CC} -o spell libspell.o spell.o rb.o mi_vector_hash.o trie.o look.o  ${LFLAGS}
 
+spell2:	libspell.o spell2.o rb.o mi_vector_hash.o trie.o look.o
+	${CC} -o spell2 libspell.o spell2.o rb.o mi_vector_hash.o trie.o look.o  ${LFLAGS}
 
-dictionary:	dictionary.o libspell.o rb.o mi_vector_hash.o trie.o spellutils.o
-	${CC} -o dictionary libspell.o dictionary.o rb.o mi_vector_hash.o trie.o spellutils.o ${LFLAGS}
+dictionary:	dictionary.o libspell.o rb.o mi_vector_hash.o trie.o spellutils.o look.o
+	${CC} -o dictionary libspell.o dictionary.o rb.o mi_vector_hash.o trie.o spellutils.o look.o ${LFLAGS}
 
-soundex:	soundex.o libspell.o rb.o mi_vector_hash.o trie.o
-	${CC} -o soundex soundex.o libspell.o rb.o mi_vector_hash.o trie.o ${LFLAGS}
+soundex:	soundex.o libspell.o rb.o mi_vector_hash.o trie.o look.o
+	${CC} -o soundex soundex.o libspell.o rb.o mi_vector_hash.o trie.o look.o ${LFLAGS}
 
-metaphone:	metaphone.o libspell.o rb.o trie.o
-	${CC} -o metaphone metaphone.o libspell.o rb.o trie.o ${LFLAGS}
+metaphone:	metaphone.o libspell.o rb.o trie.o look.o
+	${CC} -o metaphone metaphone.o libspell.o rb.o trie.o look.o ${LFLAGS}
+
+look.o:	look.c
+	${CC} ${CFLAGS} look.c
 
 spell.o:	spell.c 
 	${CC} ${CFLAGS} spell.c
+
+spell2.o:	spell2.c 
+	${CC} ${CFLAGS} spell2.c
 
 dictionary.o:	dictionary.c 
 	${CC} ${CFLAGS} dictionary.c
@@ -41,6 +49,7 @@ metaphone.o:	metaphone.c
 
 mi_vector_hash.o:	mi_vector_hash.c
 	${CC} ${CFLAGS} mi_vector_hash.c
+
 
 libspell.c: websters.c
 

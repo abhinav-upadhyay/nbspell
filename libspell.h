@@ -45,10 +45,19 @@ typedef struct word_count {
 typedef struct wlist {
 	unsigned char *front;
 	unsigned char *back;
+	size_t len;
 } wlist;
 
+typedef struct word_list {
+	struct word_list *next;
+	char *word;
+	float weight;
+	rb_node_t rbtree;
+} word_list;
+
+
 typedef struct spell_t {
-	wlist *dictionary;
+	trie_t *dictionary;
 	rb_tree_t *ngrams_tree;
 	rb_tree_t *soundex_tree;
 } spell_t;
@@ -57,7 +66,7 @@ typedef struct spell_t {
 void free_list(char **);
 spell_t *spell_init(const char *, const char *);
 int spell_is_known_word(spell_t *, const char *, int);
-char **spell_get_suggestions(spell_t *, char *, size_t);
+word_list *spell_get_suggestions(spell_t *, char *, size_t);
 char *soundex(const char *);
 char *double_metaphone(const char *);
 void spell_destroy(spell_t *);
@@ -66,4 +75,6 @@ char *lower(char *);
 char * sanitize_string(char *);
 char *look(u_char *, u_char *, u_char *);
 long get_count(char *, char);
+void free_word_list(word_list *);
+word_list *metaphone_spell_check(spell_t *, char *);
 #endif

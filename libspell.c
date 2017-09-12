@@ -32,6 +32,7 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <err.h>
+#include <math.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -47,13 +48,6 @@
 #include "libspell.h"
 #include "trie.h"
 
-typedef struct word_list {
-	struct word_list *next;
-	char *word;
-	float weight;
-	rb_node_t rbtree;
-} word_list;
-
 typedef struct set {
 	char *a;
 	char *b;
@@ -64,6 +58,7 @@ typedef struct next {
 	char sec[2];
 	size_t offset;
 } next;
+
 
 /*
  * Converts a word to lower case
@@ -80,7 +75,94 @@ lower(char *str)
 	return str;
 }
 
+static int
+min(int i, int j, int k)
+{
+	int min = i;
+	if (min > j)
+		min = j;
+	if (min > k)
+		min = k;
+	return min;
+}
+
 static void
+append_word_list(word_list *l1, word_list *l2)
+{
+	word_list *last = l1;
+	if (l1 == NULL) {
+		l1 = l2;
+		return;
+	}
+	while (last->next != NULL)
+		last = last->next;
+	last->next = l2;
+}
+
+static char **
+concat_lists(char **l1, char **l2)
+{
+	if (l1 == NULL && l2 == NULL)
+		return NULL;
+	size_t new_len = 0;
+	size_t i = 0;
+	size_t index = 0;
+	if (l1 != NULL)
+		while (l1[i] != 0) {
+			new_len++;
+			i++;
+		}
+	i = 0;
+
+	if (l2 != NULL)
+		while(l2[i] != 0) {
+			new_len++;
+			i++;
+		}
+
+	char **ret = malloc(sizeof(*ret) * (new_len + 1));
+	i = 0;
+	if (l1 != NULL)
+		while (l1[i] != 0)
+			ret[index++] = strdup(l1[i++]);
+	i = 0;
+	if (l2 != NULL)
+		while (l2[i] != 0)
+			ret[index++] = strdup(l2[i++]);
+
+	ret[index] = NULL;
+	return ret;
+}
+
+static int
+edit_distance(const char *s1, const char *s2)
+{
+	size_t i, j;
+	size_t len1 = strlen(s1);
+	size_t len2 = strlen(s2);
+	int m[len1 + 1][len2 + 1];
+	for (i = 0; i < len1; i++)
+		for(j = 0; j < len2; j++)
+			m[i][j] = 0;
+
+	for (i = 1; i <= len1; i++)
+		m[i][0] = i;
+	for (j = 1; j <= len2; j++)
+		m[0][j] = j;
+
+	for (i = 1; i <= len1; i++)
+		for (j = 1; j <= len2; j++)
+			if (s1[i - 1] == s2[j - 1])
+				m[i][j] = m[i - 1][j - 1];
+			else
+				m[i][j] = min(m[i - 1][j - 1] + 1,
+						m[i - 1][j] + 1,
+						m[i][j - 1] + 1);
+	return m[len1][len2];
+}
+
+
+void
 free_word_list(word_list *list)
 {
 	if (list == NULL)
@@ -141,7 +223,7 @@ edits1(char *word, size_t distance)
 	size_t i, j, len_a, len_b;
 	char alphabet;
 	size_t wordlen = strlen(word);
-	if (wordlen <= 1)
+	if (wordlen < 1)
 		return NULL;
 	size_t counter = 0;
 	set splits[wordlen + 1];
@@ -169,7 +251,7 @@ edits1(char *word, size_t distance)
 		assert(len_a + len_b == wordlen);
 
 		/* Deletes */
-		if (i < wordlen) {
+		if (wordlen > 1 && i < wordlen) {
 			char *candidate = malloc(wordlen);
 			memcpy(candidate, splits[i].a, len_a);
 			if (len_b - 1 > 0)
@@ -292,29 +374,41 @@ max_count(const void *node1, const void *node2)
 	return wc1->weight > wc2->weight ? -1: 1;
 }
 
-static char **
-spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n)
+static word_list*
+spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n, char *word)
 {
 	size_t i = 0, corrections_count = 0;
 	size_t corrections_size = 16;
-	word_list *wl_array = malloc(corrections_size * sizeof(*wl_array));
 	word_list *nodep = candidate_list;
 	float weight;
+	word_list *ret = NULL;
 
 	if (candidate_list == NULL)
 		return NULL;
 
+	char *metaphone_word = double_metaphone(word);
+	word_list *wl_array = malloc(corrections_size * sizeof(*wl_array));
 	while (nodep->next != NULL) {
 		char *candidate = nodep->word;
 		weight = nodep->weight;
 		nodep = nodep->next;
 		word_list listnode;
-		char *front = look(candidate, spell->dictionary->front, spell->dictionary->back);
-		size_t count = (size_t) (front != NULL? get_count(front, '\t'): 0);
+		//char *front = look(candidate, spell->dictionary->front, spell->dictionary->back);
+		//size_t count = (size_t) (front != NULL? get_count(front, '\t'): 0);
+		size_t count = trie_get(spell->dictionary, candidate);
 		if (count == 0)
 			continue;
 		listnode.weight = count * weight;
-		listnode.word = candidate;
+		listnode.word = (candidate);
+		size_t distance = edit_distance(candidate, word);
+		if (distance > 4)
+			continue;
+		char *metaphone_candidate = double_metaphone(candidate);
+		size_t meta_distance = edit_distance(metaphone_candidate, metaphone_word);
+		free(metaphone_candidate);
+
+		listnode.weight /= (pow(10,distance)) ;
+		listnode.weight /= (pow(10, meta_distance));
 		wl_array[corrections_count++] = listnode;
 
 		if (corrections_count == corrections_size - 1) {
@@ -322,6 +416,7 @@ spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n)
 			wl_array = realloc(wl_array, corrections_size * sizeof(*wl_array));
 		}
 	}
+	free(metaphone_word);
 
 	if (corrections_count == 0) {
 		free(wl_array);
@@ -329,17 +424,32 @@ spell_get_corrections(spell_t *spell, word_list *candidate_list, size_t n)
 	}
 
 	size_t arraysize = n < corrections_count? n: corrections_count;
-	char **corrections = malloc((arraysize + 1) * sizeof(*corrections));
-	corrections[arraysize] = NULL;
+//	char **corrections = malloc((arraysize + 1) * sizeof(*corrections));
+//	corrections[arraysize] = NULL;
 	qsort(wl_array, corrections_count, sizeof(*wl_array), max_count);
-	for (i = 0; i < arraysize; i++) {
+/*(	for (i = 0; i < arraysize; i++) {
 		if (wl_array[i].word) {
 			corrections[i] =  strdup(wl_array[i].word);
 			//printf("%s %f\n", wl_array[i].word, wl_array[i].weight);
 		}
 	}
 	free(wl_array);
-	return corrections;
+	return corrections;*/
+	word_list *node;
+	word_list *prevnode = NULL;
+	for (i = 0; i < arraysize ; i++)  {
+		node = malloc(sizeof(*node));
+		node->word = strdup(wl_array[i].word);
+		node->next = NULL;
+		if (prevnode != NULL)
+			prevnode->next = node;
+
+		if (ret == NULL)
+			ret = node;
+		prevnode = node;
+	}
+	free(wl_array);
+	return ret;
 }
 
 void
@@ -489,7 +599,9 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 	static rb_tree_t *soundex_tree;
 
 	spellt = malloc(sizeof(*spellt));
-	spellt->dictionary = get_wlist("dict/unigram.txt");
+	words_tree = trie_init();
+//	spellt->dictionary = get_wlist("dict/unigram.txt");
+	spellt->dictionary = words_tree;
 	spellt->ngrams_tree = NULL;
 	spellt->soundex_tree = NULL;
 
@@ -509,6 +621,18 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 			return NULL;
 		}
 	}
+
+	if ((f = fopen(dictionary_path, "r")) == NULL) {
+		spell_destroy(spellt);
+		return NULL;
+	}
+
+	if ((parse_file_and_generate_trie(f, words_tree, '\t')) < 0) {
+		spell_destroy(spellt);
+		fclose(f);
+		return NULL;
+	}
+	fclose(f);
 
 	if ((f = fopen("dict/bigram.txt", "r")) != NULL) {
 		ngrams_tree = malloc(sizeof(*ngrams_tree));
@@ -716,66 +840,81 @@ copy_word_list(word_list * list)
 }
 
 static word_list *
+get_soundex2_list(spell_t *spell, char *word)
+{
+	word_list soundex_node;
+	word_list *soundexes = NULL;
+	word_list *temp;
+	char *soundex_code = double_metaphone(word);
+	if (soundex_code == NULL)
+		return NULL;
+
+	word_list *distance_one_mphones = edits1(soundex_code, 1);
+	free(soundex_code);
+
+	word_list *distance_two_mphones = edits_plus_one(distance_one_mphones);
+	word_list *node = distance_two_mphones;
+	if (node == NULL)
+		warnx("node null for word %s", word);
+	while (node->next != NULL) {
+		soundex_node.word = node->word;
+		word_list *soundexes1 = rb_tree_find_node(spell->soundex_tree, &soundex_node);
+		if (soundexes1 != NULL) {
+			if (soundexes == NULL)
+				soundexes = copy_word_list(soundexes1->next);
+			else
+				append_word_list(soundexes, copy_word_list(soundexes1->next));
+		}
+		node = node->next;
+	}
+	free_word_list(distance_one_mphones);
+	free_word_list(distance_two_mphones);
+	return soundexes;
+}
+
+static word_list *
 get_soundex_list(spell_t *spell, char *word)
 {
 	word_list soundex_node;
-	word_list *soundexes;
+	word_list *soundexes = NULL;
+	word_list *temp;
 	char *soundex_code = double_metaphone(word);
 	if (soundex_code == NULL)
 		return NULL;
 
 	soundex_node.word = soundex_code;
 	soundexes = rb_tree_find_node(spell->soundex_tree, &soundex_node);
-	free(soundex_code);
-	if (soundexes == NULL)
-		return NULL;
-
-	return copy_word_list(soundexes->next);
-}
-
-static int
-min(int i, int j, int k)
-{
-	int min = i;
-	if (min > j)
-		min = j;
-	if (min > k)
-		min = k;
-	return min;
-}
-
-static int
-edit_distance(const char *s1, const char *s2)
-{
-	size_t i, j;
-	size_t len1 = strlen(s1);
-	size_t len2 = strlen(s2);
-	int m[len1 + 1][len2 + 1];
-	for (i = 0; i < len1; i++)
-		for(j = 0; j < len2; j++)
-			m[i][j] = 0;
-
-	for (i = 1; i <= len1; i++)
-		m[i][0] = i;
-	for (j = 1; j <= len2; j++)
-		m[0][j] = j;
-
-	for (i = 1; i <= len1; i++)
-		for (j = 1; j <= len2; j++)
-			if (s1[i - 1] == s2[j - 1])
-				m[i][j] = m[i - 1][j - 1];
+	if (soundexes) {
+		temp = copy_word_list(soundexes->next);
+		soundexes = temp;
+	}
+	word_list *distance_one_mphones = edits1(soundex_code, 1);
+	word_list *node = distance_one_mphones;
+	if (node == NULL)
+		warnx("node null for word %s", word);
+	while (node->next != NULL) {
+		soundex_node.word = node->word;
+		word_list *soundexes1 = rb_tree_find_node(spell->soundex_tree, &soundex_node);
+		if (soundexes1 != NULL) {
+			if (soundexes == NULL)
+				soundexes = copy_word_list(soundexes1->next);
 			else
-				m[i][j] = min(m[i - 1][j - 1] + 1,
-						m[i - 1][j] + 1,
-						m[i][j - 1] + 1);
-	return m[len1][len2];
+				append_word_list(soundexes, copy_word_list(soundexes1->next));
+		}
+		node = node->next;
+	}
+	free(soundex_code);
+
+	free_word_list(distance_one_mphones);
+	return soundexes;
 }
 
 int
 spell_is_known_word(spell_t *spell, const char *word, int ngram)
 {
 	if (ngram == 1)
-		return look((u_char *) word, (u_char *)spell->dictionary->front, (u_char *)spell->dictionary->back) != 0;
+//		return look((u_char *) word, (u_char *)spell->dictionary->front, (u_char *)spell->dictionary->back) != 0;
+		return trie_get(spell->dictionary, word) != 0;
 	else if (ngram == 2) {
 		word_count wc;
 		wc.word = (char *) word;
@@ -785,40 +924,75 @@ spell_is_known_word(spell_t *spell, const char *word, int ngram)
 	return 0;
 }
 
-char **
+word_list *
 spell_get_suggestions(spell_t * spell, char *word, size_t nsuggestions)
 {
-	char **corrections = NULL;
+	word_list *corrections = NULL;
 	word_list *candidates;
 	word_list *candidates2;
-	word_list *soundexes;
+	word_list *soundexes = NULL;
 	word_list *tail;
 	lower(word);
 	candidates = edits1(word, 1);
-	corrections = spell_get_corrections(spell, candidates, nsuggestions);
+	corrections = spell_get_corrections(spell, candidates, nsuggestions, word);
+
 	if (corrections == NULL) {
 		candidates2 = edits_plus_one(candidates);
-		corrections = spell_get_corrections(spell, candidates2, nsuggestions);
+		if (soundexes) {
+			append_word_list(soundexes, candidates2);
+			corrections = spell_get_corrections(spell, soundexes, nsuggestions, word);
+			free_word_list(soundexes);
+		} else {
+			//append_word_list(candidates, candidates2);
+			//corrections = spell_get_corrections(spell, candidates, nsuggestions, word);
+			corrections = spell_get_corrections(spell, candidates2, nsuggestions, word);
+//			free_word_list(candidates);
+		}
 		free_word_list(candidates2);
-	}
-	free_word_list(candidates);
+		free_word_list(candidates);
+	}/* else {
+		if (soundexes) {
+			corrections = spell_get_corrections(spell, soundexes, nsuggestions, word);
+			free_word_list(soundexes);
+		} else {
+			corrections = spell_get_corrections(spell, candidates, nsuggestions, word);
+			free_word_list(candidates);
+		}
+	}*/
 	if (corrections == NULL) {
 		soundexes = get_soundex_list(spell, word);
 		if (soundexes != NULL) {
-			corrections = malloc(2 * sizeof(char *));
-			corrections[0] = NULL;
-			corrections[1] = NULL;
-			int min_distance = 10000;
-			word_list *node = soundexes->next;
-			while (node != NULL) {
-				if (edit_distance(word, node->word) < min_distance) {
-					min_distance = edit_distance(word, node->word);
-					if (corrections[0])
-						free(corrections[0]);
-					corrections[0] = strdup(node->word);
-				}
-				node = node->next;
-			}
+			corrections = spell_get_corrections(spell, soundexes, nsuggestions, word);
+			free_word_list(soundexes);
+			soundexes = NULL;
+	//		if (corrections != NULL)
+	//			free_word_list(candidates);
+//			free_word_list(soundexes);
+		}/* else  {
+			soundexes = get_soundex2_list(spell, word);
+			if (soundexes)
+				append_word_list(candidates, soundexes);
+			corrections = spell_get_corrections(spell, candidates, nsuggestions, word);
+		}*/
+	}// else
+	//	free_word_list(candidates);
+
+
+//		char **ret = concat_lists(corrections2, corrections);
+//		rd_list(
+//
+//		free_list(corrections);
+//		free_list(corrections2);
+//		corrections = ret;
+//		free_word_list(candidates2);
+//	}
+//	free_word_list(soundexes);
+	//}
+	//free_word_list(candidates);
+	if (corrections == NULL) {
+		soundexes = get_soundex2_list(spell, word);
+		if (soundexes) {
+			corrections = spell_get_corrections(spell, soundexes, nsuggestions, word);
 			free_word_list(soundexes);
 		}
 	}
@@ -853,8 +1027,9 @@ spell_destroy(spell_t * spell)
 	word_list *list;
 //	trie_destroy(spell->dictionary);
 
-	munmap(spell->dictionary->front, spell->dictionary->len);
-	free(spell->dictionary);
+//	munmap(spell->dictionary->front, spell->dictionary->len);
+	trie_destroy(spell->dictionary);
+	//free(spell->dictionary);
 	if (spell->ngrams_tree != NULL)
 		free_tree(spell->ngrams_tree);
 
@@ -980,8 +1155,8 @@ double_metaphone(const char *s)
 	size_t first = 2;
 	size_t last = first + len - 1;
 	size_t pos = first;
-	char *pri = malloc(len + 1);
-	char *sec = malloc(len + 1);
+	char *pri = malloc(len + 10);
+	char *sec = malloc(len + 10);
 	size_t pri_offset = 0;
 	size_t sec_offset = 0;
 	struct next nxt;
@@ -1270,7 +1445,7 @@ double_metaphone(const char *s)
 			} else {
 				nxt.pri[0] = 0;
 				nxt.pri[1] = 0;
-				nxt.offset = 2;
+				nxt.offset = 1;
 			}
 		} else if (ch == 'J') {
 			if (strncmp(&st[pos], "JOSE", 4) == 0 ||
@@ -1652,3 +1827,87 @@ double_metaphone(const char *s)
 	return pri;
 }
 
+
+
+word_list *
+metaphone_spell_check(spell_t *spell, char *word)
+{
+	char *metaphone = double_metaphone(word);
+	word_list node;
+	node.word = metaphone;
+	word_list *matches = NULL;
+	word_list *words = rb_tree_find_node(spell->soundex_tree, &node);
+	size_t min_distance = 10000;
+	char **corrections = NULL;
+	word_list *ret = NULL;
+	if (words != NULL) {
+		ret = spell_get_corrections(spell, words, 1, word);
+	}
+
+	word_list *distance_one_mphones = edits1(metaphone, 1);
+	if (distance_one_mphones == NULL) {
+		fprintf(stderr, "distaonce_one_mphones null for %s\n", word);
+		free(metaphone);
+		return NULL;
+	}
+
+	word_list *tempnode = distance_one_mphones;
+	while (tempnode && tempnode->next != NULL) {
+		node.word = tempnode->word;
+		words = rb_tree_find_node(spell->soundex_tree, &node);
+		if (words != NULL) {
+			if (matches == NULL)
+				matches = copy_word_list(words->next);
+			else
+				append_word_list(matches, copy_word_list(words->next));
+		}
+		tempnode = tempnode->next;
+	}
+
+	if (matches != NULL) {
+		word_list *ret2 = spell_get_corrections(spell, matches, 1, word);
+		append_word_list(ret, ret2);
+	//	free_word_list(matches);
+	//	free_word_list(distance_one_mphones);
+	//	free(metaphone);
+	}
+
+	word_list *distance_two_mphones = edits_plus_one(distance_one_mphones);
+	tempnode = distance_two_mphones;
+	while (tempnode->next != NULL) {
+		node.word = tempnode->word;
+		words = rb_tree_find_node(spell->soundex_tree, &node);
+		if (words != NULL) {
+			if (matches == NULL)
+				matches = copy_word_list(words->next);
+			else
+				append_word_list(matches, copy_word_list(words->next));
+		}
+		tempnode = tempnode->next;
+	}
+
+	if (matches != NULL) {
+		word_list *ret2 = spell_get_corrections(spell, matches, 1, word);
+		append_word_list(ret, ret2);
+	}
+	free_word_list(matches);
+	free_word_list(distance_one_mphones);
+	free_word_list(distance_two_mphones);
+	free(metaphone);
+
+MIN_DISTANCE:
+	corrections = malloc(sizeof(*corrections) * 2);
+	corrections[0] = NULL;
+	corrections[1] = NULL;
+	/*for (size_t i = 0; ret && ret[i] != NULL; i++) {
+		if (edit_distance(word, ret[i]) < min_distance) {
+			min_distance = edit_distance(word, ret[i]);
+			if (corrections[0])
+				free(corrections[0]);
+			corrections[0] = strdup(ret[i]);
+		}
+	}
+	free_list(ret);
+	return corrections;*/
+	return ret;
+}
