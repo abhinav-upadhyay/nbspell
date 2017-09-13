@@ -78,4 +78,5 @@ char *look(u_char *, u_char *, u_char *);
 long get_count(char *, char);
 void free_word_list(word_list *);
 word_list *metaphone_spell_check(spell_t *, char *);
+int load_bigrams(spell_t *, const char *);
 #endif

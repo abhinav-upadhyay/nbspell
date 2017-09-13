@@ -3,10 +3,13 @@ LFLAGS=-lbsd  -lm
 TOOL_NBPERF=nbperf
 TOOL_SED=sed
 CC=clang
-all:	spell dictionary soundex metaphone spell2
+all:	spell dictionary soundex metaphone spell2 bigspell
 
 spell:	libspell.o spell.o rb.o mi_vector_hash.o trie.o look.o
 	${CC} -o spell libspell.o spell.o rb.o mi_vector_hash.o trie.o look.o  ${LFLAGS}
+
+bigspell:	libspell.o bigspell.o rb.o mi_vector_hash.o trie.o look.o
+	${CC} -o bigspell libspell.o bigspell.o rb.o mi_vector_hash.o trie.o look.o  ${LFLAGS}
 
 spell2:	libspell.o spell2.o rb.o mi_vector_hash.o trie.o look.o
 	${CC} -o spell2 libspell.o spell2.o rb.o mi_vector_hash.o trie.o look.o  ${LFLAGS}
@@ -46,6 +49,9 @@ spellutils.o:	spellutils.c
 
 metaphone.o:	metaphone.c
 	${CC} ${CFLAGS} metaphone.c
+
+bigspell.o:	bigspell.c
+	${CC} ${CFLAGS} bigspell.c
 
 mi_vector_hash.o:	mi_vector_hash.c
 	${CC} ${CFLAGS} mi_vector_hash.c

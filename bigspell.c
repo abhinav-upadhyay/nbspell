@@ -53,7 +53,8 @@ do_bigram(FILE *inputf, const char *whitelist_filepath, size_t nsuggestions)
 	char *word = NULL;
 	size_t wordsize = 0;
 	ssize_t bytesread;
-	spell_t *spellt = spell_init("dict/bigram.txt", whitelist_filepath);
+	spell_t *spellt = spell_init("dict/unigram.txt", whitelist_filepath);
+	load_bigrams(spellt, "dict/bigram.txt");
 	char *line = NULL;
 	size_t linesize = 0;
 	ssize_t bytes_read;
@@ -117,25 +118,36 @@ do_bigram(FILE *inputf, const char *whitelist_filepath, size_t nsuggestions)
 			 * First word of the sentence
 			 */
 			if (prevword == NULL) {
-				char **s = spell_get_suggestions(spellt, word, nsuggestions);
-				if (s != NULL && s[0] != NULL)
-					correction = strdup(s[0]);
-				free_list(s);
-				if (correction != NULL)
-					printf("%s: %s\n", word, correction);
-				word = correction;
+				word_list *wl  = spell_get_suggestions_slow(spellt, word, nsuggestions);
+				word_list *node = wl;
+				size_t i = 0;
+				if (wl) {
+					printf("%s: ", word);
+					while (node != NULL) {
+						if (i > 0)
+							printf("%s", ",");
+						printf("%s", node->word);
+						node = node->next;
+						i++;
+					}
+					printf("\n");
+					free_word_list(wl);
+				}
 				continue;
 			}
 
-			char **suggestions = spell_get_suggestions(spellt, word, nsuggestions);
+			word_list *suggestions = spell_get_suggestions_slow(spellt, word, nsuggestions);
 			int max_index = -1;
 			size_t max_frequency = 0;
-			for (i = 0; suggestions && suggestions[i]; i++) {
-				asprintf(&bigram_word, "%s %s", prevword, suggestions[i]);
+			word_list *node = suggestions;
+			char *match = NULL;
+			for (; node && node->next; node = node->next) {
+				asprintf(&bigram_word, "%s %s", prevword, node->word);
 				int suggestion_frequency = spell_is_known_word(spellt, bigram_word, 2);
 				if (suggestion_frequency > max_frequency) {
 					max_frequency = suggestion_frequency;
 					max_index = i;
+					match = node->word;
 				}
 				free(bigram_word);
 				bigram_word = NULL;
@@ -143,15 +155,14 @@ do_bigram(FILE *inputf, const char *whitelist_filepath, size_t nsuggestions)
 
 			/* If no bigrams found, check the unigram index for this word */
 			if (max_index == -1) {
-				char **suggestions2 = spell_get_suggestions(spellt, word, nsuggestions);
-				if (suggestions2 && suggestions2[0])
-					printf("%s: %s\n", word, suggestions2[0]);
-				free(suggestions2);
+				word_list *suggestions2 = spell_get_suggestions_slow(spellt, word, nsuggestions);
+				if (suggestions2)
+					printf("%s: %s\n", word, suggestions2->word);
+				free_word_list(suggestions2);
 			} else
-				printf("%s: %s\n", word, suggestions[max_index]);
+				printf("%s: %s\n", word, match);
 
-			free_list(suggestions);
-<<<<<<< HEAD:spell2.c
+			free_word_list(suggestions);
 
 		}
         free(line);
@@ -159,72 +170,6 @@ do_bigram(FILE *inputf, const char *whitelist_filepath, size_t nsuggestions)
 	}
 }
 
-
-static void
-do_unigram(FILE *f, const char *whitelist_filepath)
-{
-
-	char *word = NULL;
-	size_t wordsize = 0;
-	ssize_t bytes_read;
-	spell_t *spell = spell_init("dict/unigram.txt", whitelist_filepath);
-	char *line = NULL;
-	size_t linesize = 0;
-	word_count *wcnode;
-	word_count wc;
-	wc.count = 0;
-	char *sanitized_word = NULL;
-
-
-	while ((bytes_read = getline(&line, &linesize, f)) != -1) {
-		line[--bytes_read] = 0;
-		if (line[bytes_read] == '\r')
-			line[bytes_read] = 0;
-		char *templine = line;
-		while (*templine) {
-			wordsize = strcspn(templine, "()<>@?\'\",;-:. \t");
-			templine[wordsize] = 0;
-			word = templine;
-			templine += wordsize + 1;
-			if (strlen(word) <= 1)
-				continue;
-			while (*templine == ' ')
-				templine++;
-			/*			sanitized_word = sanitize_string(word);
-						if (!sanitized_word || !sanitized_word[0]) {
-						free(sanitized_word);
-						continue;
-						}*/
-
-			lower(word);
-			if (spell_is_known_word(spell, word, 1))
-				continue;
-
-			if (is_whitelisted_word(spell, word))
-				continue;
-
-			char **corrections = spell_get_suggestions(spell, word, 1);
-			size_t i = 0;
-			while(corrections && corrections[i] != NULL) {
-				char *correction = corrections[i++];
-				printf("%s: %s\n", word, correction);
-			}
-			free_list(corrections);
-		}
-        free(line);
-        line = NULL;
-        linesize = 0;
-	}
-    free(line);
-    spell_destroy(spell);
-=======
-		}
-		free(line);
-		line = NULL;
-	}
-	free(line);
->>>>>>> master:bigspell.c
-}
 
 int
 main(int argc, char **argv)
@@ -254,17 +199,10 @@ main(int argc, char **argv)
 		}
 	}
 
-<<<<<<< HEAD:spell2.c
-	if (ngram == 1)
-		do_unigram(input, whitelist_filepath);
-	if (ngram == 2)
-		do_bigram(input, whitelist_filepath);
     if (input != stdin)
         fclose(input);
-=======
 	do_bigram(input, whitelist_filepath, nsuggestions);
 	if (input != stdin)
 		fclose(input);
->>>>>>> master:bigspell.c
 	return 0;
 }

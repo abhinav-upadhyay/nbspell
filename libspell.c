@@ -579,6 +579,32 @@ get_wlist(const char *fname)
 	return w;
 }
 
+int
+load_bigrams(spell_t *spellt, const char *bigram_path)
+{
+
+	FILE *f;
+	rb_tree_t *ngrams_tree;
+	static const rb_tree_ops_t tree_ops = {
+		.rbto_compare_nodes =  compare_words,
+		.rbto_compare_key = compare_words,
+		.rbto_node_offset = offsetof(word_count, rbtree),
+		.rbto_context = NULL
+	};
+
+	if ((f = fopen(bigram_path, "r")) != NULL) {
+		ngrams_tree = malloc(sizeof(*ngrams_tree));
+		rb_tree_init(ngrams_tree, &tree_ops);
+		spellt->ngrams_tree = ngrams_tree;
+		if ((parse_file_and_generate_tree(f, ngrams_tree, '\t')) < 0) {
+			spell_destroy(spellt);
+			fclose(f);
+			return -1;
+		}
+		fclose(f);
+	}
+
+}
 
 
 spell_t *
@@ -595,7 +621,6 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 
 	spell_t *spellt;
 	trie_t *words_tree = NULL;
-	static rb_tree_t *ngrams_tree;
 	static rb_tree_t *soundex_tree;
 
 	spellt = malloc(sizeof(*spellt));
@@ -633,18 +658,6 @@ spell_init(const char *dictionary_path, const char *whitelist_filepath)
 		return NULL;
 	}
 	fclose(f);
-
-	if ((f = fopen("dict/bigram.txt", "r")) != NULL) {
-		ngrams_tree = malloc(sizeof(*ngrams_tree));
-		rb_tree_init(ngrams_tree, &tree_ops);
-		spellt->ngrams_tree = ngrams_tree;
-		if ((parse_file_and_generate_tree(f, ngrams_tree, '\t')) < 0) {
-			spell_destroy(spellt);
-			fclose(f);
-			return NULL;
-		}
-		fclose(f);
-	}
 
 	if ((f = fopen("dict/soundex.txt", "r")) != NULL) {
 		static const rb_tree_ops_t soundex_tree_ops = {
