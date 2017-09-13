@@ -47,7 +47,7 @@ usage(void)
 
 
 static void
-do_unigram(FILE *f, const char *whitelist_filepath, size_t nsuggestions)
+do_unigram(FILE *f, const char *whitelist_filepath, size_t nsuggestions, int fast)
 {
 
 	char *word = NULL;
@@ -60,6 +60,7 @@ do_unigram(FILE *f, const char *whitelist_filepath, size_t nsuggestions)
 	word_count wc;
 	wc.count = 0;
 	char *sanitized_word = NULL;
+	word_list *corrections = NULL;
 
 
 	while ((bytes_read = getline(&line, &linesize, f)) != -1) {
@@ -91,7 +92,10 @@ do_unigram(FILE *f, const char *whitelist_filepath, size_t nsuggestions)
 				continue;
 			}
 
-			word_list *corrections = spell_get_suggestions(spell, sanitized_word, nsuggestions);
+			if (!fast)
+				corrections = spell_get_suggestions_slow(spell, sanitized_word, nsuggestions);
+			else
+				corrections = spell_get_suggestions_fast(spell, sanitized_word, nsuggestions);
 			word_list *node = corrections;
 			size_t i = 0;
 			if (corrections) {
@@ -128,11 +132,15 @@ main(int argc, char **argv)
 	char *whitelist_filepath = NULL;
 	int ch;
 	size_t nsuggestions = 1;
+	int fast = 0;
 
-	while ((ch = getopt(argc, argv, "c:i:w:")) != -1) {
+	while ((ch = getopt(argc, argv, "c:fi:w:")) != -1) {
 		switch (ch) {
 		case 'c':
 			nsuggestions = strtol(optarg, NULL, 10);
+			break;
+		case 'f':
+			fast = 1;
 			break;
 		case 'i':
 			input = fopen(optarg, "r");
@@ -148,7 +156,7 @@ main(int argc, char **argv)
 		}
 	}
 
-	do_unigram(input, whitelist_filepath, nsuggestions);
+	do_unigram(input, whitelist_filepath, nsuggestions, fast);
 	if (input != stdin)
 		fclose(input);
 	return 0;
