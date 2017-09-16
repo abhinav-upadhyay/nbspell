@@ -20,8 +20,8 @@ dictionary:	dictionary.o libspell.o rb.o mi_vector_hash.o trie.o spellutils.o lo
 soundex:	soundex.o libspell.o rb.o mi_vector_hash.o trie.o look.o
 	${CC} -o soundex soundex.o libspell.o rb.o mi_vector_hash.o trie.o look.o ${LFLAGS}
 
-metaphone:	metaphone.o libspell.o rb.o trie.o look.o
-	${CC} -o metaphone metaphone.o libspell.o rb.o trie.o look.o ${LFLAGS}
+metaphone:	metaphone.o libspell.o rb.o mi_vector_hash.o trie.o look.o
+	${CC} -o metaphone metaphone.o libspell.o rb.o mi_vector_hash.o trie.o look.o ${LFLAGS}
 
 look.o:	look.c
 	${CC} ${CFLAGS} look.c
