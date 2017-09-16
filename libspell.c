@@ -344,6 +344,8 @@ edits_plus_one(word_list *edits1_list)
 	word_list *edits2_list = NULL;
 	word_list *tail = edits1_list;
 	word_list *templist;
+	if (edits1_list == NULL)
+		return NULL;
 
 	while (nodep->next != NULL) {
 		templist = edits1(nodep->word, 2);
@@ -962,7 +964,6 @@ spell_get_suggestions_slow(spell_t * spell, char *word, size_t nsuggestions)
 //			free_word_list(candidates);
 		}
 		free_word_list(candidates2);
-		free_word_list(candidates);
 	}/* else {
 		if (soundexes) {
 			corrections = spell_get_corrections(spell, soundexes, nsuggestions, word);
@@ -972,6 +973,7 @@ spell_get_suggestions_slow(spell_t * spell, char *word, size_t nsuggestions)
 			free_word_list(candidates);
 		}
 	}*/
+	free_word_list(candidates);
 	if (corrections == NULL) {
 		soundexes = get_soundex_list(spell, word);
 		if (soundexes != NULL) {
@@ -1141,6 +1143,8 @@ sanitize_string(char *s)
 		s++;
 		--len;
 	}
+	if (s[0] == '/')
+		return NULL;
 	char *ret = malloc(len + 1);
 	memset(ret, 0, len + 1);
 	while (*s) {
