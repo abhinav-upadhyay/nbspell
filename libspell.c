@@ -958,21 +958,11 @@ spell_get_suggestions_slow(spell_t * spell, char *word, size_t nsuggestions)
 			corrections = spell_get_corrections(spell, soundexes, nsuggestions, word);
 			free_word_list(soundexes);
 		} else {
-			//append_word_list(candidates, candidates2);
-			//corrections = spell_get_corrections(spell, candidates, nsuggestions, word);
 			corrections = spell_get_corrections(spell, candidates2, nsuggestions, word);
-//			free_word_list(candidates);
 		}
 		free_word_list(candidates2);
-	}/* else {
-		if (soundexes) {
-			corrections = spell_get_corrections(spell, soundexes, nsuggestions, word);
-			free_word_list(soundexes);
-		} else {
-			corrections = spell_get_corrections(spell, candidates, nsuggestions, word);
-			free_word_list(candidates);
-		}
-	}*/
+	}
+
 	free_word_list(candidates);
 	if (corrections == NULL) {
 		soundexes = get_soundex_list(spell, word);
@@ -980,30 +970,9 @@ spell_get_suggestions_slow(spell_t * spell, char *word, size_t nsuggestions)
 			corrections = spell_get_corrections(spell, soundexes, nsuggestions, word);
 			free_word_list(soundexes);
 			soundexes = NULL;
-	//		if (corrections != NULL)
-	//			free_word_list(candidates);
-//			free_word_list(soundexes);
-		}/* else  {
-			soundexes = get_soundex2_list(spell, word);
-			if (soundexes)
-				append_word_list(candidates, soundexes);
-			corrections = spell_get_corrections(spell, candidates, nsuggestions, word);
-		}*/
-	}// else
-	//	free_word_list(candidates);
+		}
+	}
 
-
-//		char **ret = concat_lists(corrections2, corrections);
-//		rd_list(
-//
-//		free_list(corrections);
-//		free_list(corrections2);
-//		corrections = ret;
-//		free_word_list(candidates2);
-//	}
-//	free_word_list(soundexes);
-	//}
-	//free_word_list(candidates);
 	if (corrections == NULL) {
 		soundexes = get_soundex2_list(spell, word);
 		if (soundexes) {
@@ -1032,17 +1001,10 @@ spell_get_suggestions_fast(spell_t * spell, char *word, size_t nsuggestions)
 			corrections = spell_get_corrections(spell, soundexes, nsuggestions, word);
 			free_word_list(soundexes);
 			soundexes = NULL;
-	//		if (corrections != NULL)
-	//			free_word_list(candidates);
-//			free_word_list(soundexes);
-		}/* else  {
-			soundexes = get_soundex2_list(spell, word);
-			if (soundexes)
-				append_word_list(candidates, soundexes);
-			corrections = spell_get_corrections(spell, candidates, nsuggestions, word);
-		}*/
-	}// else
-	//	free_word_list(candidates);
+		}
+
+	}
+
 	if (corrections == NULL) {
 		candidates2 = edits_plus_one(candidates);
 		if (soundexes) {
@@ -1050,35 +1012,12 @@ spell_get_suggestions_fast(spell_t * spell, char *word, size_t nsuggestions)
 			corrections = spell_get_corrections(spell, soundexes, nsuggestions, word);
 			free_word_list(soundexes);
 		} else {
-			//append_word_list(candidates, candidates2);
-			//corrections = spell_get_corrections(spell, candidates, nsuggestions, word);
 			corrections = spell_get_corrections(spell, candidates2, nsuggestions, word);
-//			free_word_list(candidates);
 		}
 		free_word_list(candidates2);
 		free_word_list(candidates);
-	}/* else {
-		if (soundexes) {
-			corrections = spell_get_corrections(spell, soundexes, nsuggestions, word);
-			free_word_list(soundexes);
-		} else {
-			corrections = spell_get_corrections(spell, candidates, nsuggestions, word);
-			free_word_list(candidates);
-		}
-	}*/
+	}
 
-
-//		char **ret = concat_lists(corrections2, corrections);
-//		rd_list(
-//
-//		free_list(corrections);
-//		free_list(corrections2);
-//		corrections = ret;
-//		free_word_list(candidates2);
-//	}
-//	free_word_list(soundexes);
-	//}
-	//free_word_list(candidates);
 	if (corrections == NULL) {
 		soundexes = get_soundex2_list(spell, word);
 		if (soundexes) {
@@ -1115,11 +1054,8 @@ void
 spell_destroy(spell_t * spell)
 {
 	word_list *list;
-//	trie_destroy(spell->dictionary);
-
-//	munmap(spell->dictionary->front, spell->dictionary->len);
 	trie_destroy(spell->dictionary);
-	//free(spell->dictionary);
+
 	if (spell->ngrams_tree != NULL)
 		free_tree(spell->ngrams_tree);
 
