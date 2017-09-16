@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 /*-
  * Copyright (c) 2017 Abhinav Upadhyay <er.abhinav.upadhyay@gmail.com>
  * All rights reserved.
@@ -34,10 +35,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <util.h>
+//#include <util.h>
 
 #include <sys/queue.h>
-#include <sys/rbtree.h>
+#include "rbtree.h"
 #include "libspell.h"
 #include "spellutils.h"
 
@@ -120,7 +121,7 @@ parse_file(FILE * f, FILE * output, long ngram)
 				free(sanitized_word);
 				goto clear_list;
 			}
-			e = emalloc(sizeof(*e));
+			e = malloc(sizeof(*e));
 			e->word = sanitized_word;
 			counter++;
 			if (counter > ngram) {
@@ -135,19 +136,19 @@ parse_file(FILE * f, FILE * output, long ngram)
 
 			SIMPLEQ_FOREACH(np, &head, entries) {
 				if (ngram_string) {
-					easprintf(&temp, "%s %s", ngram_string, np->word);
+					asprintf(&temp, "%s %s", ngram_string, np->word);
 					free(ngram_string);
 					ngram_string = temp;
 					temp = NULL;
 				} else {
-					ngram_string = estrdup(np->word);
+					ngram_string = strdup(np->word);
 				}
 			}
 
 			wc.word = ngram_string;
 			void *node = rb_tree_find_node(&words_tree, &wc);
 			if (node == NULL) {
-				wcnode = emalloc(sizeof(*wcnode));
+				wcnode = malloc(sizeof(*wcnode));
 				wcnode->word = ngram_string;
 				wcnode->count = 1;
 				rb_tree_insert_node(&words_tree, wcnode);
@@ -171,8 +172,8 @@ parse_file(FILE * f, FILE * output, long ngram)
 		}
 		free(line);
 		line = NULL;
-		linesize = 0;
 	}
+    free(line);
 
 
 	word_count *tmp;

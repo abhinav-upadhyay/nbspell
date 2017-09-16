@@ -29,5 +29,6 @@
 
 #ifndef SPELLUTILS_H
 #define SPELLUTILS_H
+#include <stdint.h>
 int is_known_word(const char *);
 #endif

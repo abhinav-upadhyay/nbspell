@@ -28,14 +28,14 @@
  */
 
 #include <stdlib.h>
-#include <util.h>
+//#include <util.h>
 
 #include "trie.h"
 
 trie_t *
 trie_init(void)
 {
-	return ecalloc(1, sizeof(trie_t));
+	return calloc(1, sizeof(trie_t));
 }
 
 void

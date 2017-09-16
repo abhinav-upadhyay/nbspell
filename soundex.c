@@ -44,7 +44,7 @@ main(int argc, char **argv)
 		err(EXIT_FAILURE, "Failed to open soundex");
 
 	for (i = 0; i < sizeof(dict) / sizeof(dict[0]); i++) {
-		soundex_code = soundex(dict[i]);
+		soundex_code = double_metaphone(dict[i]);
 		if (soundex_code == NULL) {
 			warnx("No soundex code found for %s", dict[i++]);
 			continue;
