@@ -608,26 +608,128 @@ load_bigrams(spell_t *spellt, const char *bigram_path)
 
 }
 
+static int
+generate_trie_from_list(word_list *list, trie_t *trie, char field_separator)
+{
+	char *line = NULL;
+	size_t count;
+	size_t linesize = 0;
+	size_t wordsize = 0;
+	ssize_t bytes_read;
+	word_count *wcnode;
+	word_count wc;
+	wc.count = 0;
+	word_list *node = list;
+	while (node != NULL) {
+		line = node->word;
+		char *templine = line;
+		if (field_separator) {
+			char *sepindex = strchr(templine, field_separator);
+			if (sepindex == NULL) {
+				warnx("No tab found on line %s", templine);
+				return -1;
+			}
+			sepindex[0] = 0;
+			count = strtol(sepindex + 1, NULL, 10);
+		} else {
+			/* Since our trie expects to store a count of the
+			 * frequency of the word and for some cases (such as
+			 * the whitelist word file) we don't have those
+			 * counts, set the default count as 1
+			 */
+			count = 1;
+		}
+
+		lower(templine);
+		trie_insert(&trie, templine, count);
+		node = node->next;
+	}
+	return 0;
+}
 
 spell_t *
-spell_init(const char *dictionary_path, const char *whitelist_filepath)
+spell_init2(word_list *dictionary_list, word_list *whitelist)
 {
-	FILE *f;
-
-	static const rb_tree_ops_t tree_ops = {
-		.rbto_compare_nodes =  compare_words,
-		.rbto_compare_key = compare_words,
-		.rbto_node_offset = offsetof(word_count, rbtree),
-		.rbto_context = NULL
-	};
-
 	spell_t *spellt;
 	trie_t *words_tree = NULL;
 	static rb_tree_t *soundex_tree;
 
 	spellt = malloc(sizeof(*spellt));
 	words_tree = trie_init();
-//	spellt->dictionary = get_wlist("dict/unigram.txt");
+	spellt->dictionary = words_tree;
+	spellt->ngrams_tree = NULL;
+	spellt->soundex_tree = NULL;
+
+	char *word = NULL;
+	char *line = NULL;
+	size_t linesize = 0;
+	size_t wordsize = 0;
+	ssize_t bytes_read;
+	word_count *wcnode;
+	word_count wc;
+	wc.count = 0;
+
+	if (whitelist != NULL) {
+		if ((generate_trie_from_list(whitelist, words_tree, 0)) < 0) {
+			spell_destroy(spellt);
+			return NULL;
+		}
+	}
+
+	if ((generate_trie_from_list(dictionary_list, words_tree, '\t')) < 0) {
+		spell_destroy(spellt);
+		return NULL;
+	}
+
+	word_list *node = dictionary_list;
+	static const rb_tree_ops_t soundex_tree_ops = {
+		.rbto_compare_nodes =  compare_listnodes,
+		.rbto_compare_key = compare_listnodes,
+		.rbto_node_offset = offsetof(word_list, rbtree),
+		.rbto_context = NULL
+	};
+
+	soundex_tree = malloc(sizeof(*soundex_tree));
+	rb_tree_init(soundex_tree, &soundex_tree_ops);
+	spellt->soundex_tree = soundex_tree;
+	while(node != NULL) {
+		char *word= node->word;
+		char *soundex_code = double_metaphone(word);
+		word_list *listnode;
+		word_list templistnode;
+		templistnode.word = soundex_code;
+		listnode = rb_tree_find_node(soundex_tree, &templistnode);
+		if (listnode != NULL) {
+			word_list *newlistnode = malloc(sizeof(*newlistnode));
+			newlistnode->word = strdup(word);
+			newlistnode->next = listnode->next;
+			newlistnode->weight = .01;
+			listnode->next = newlistnode;
+		} else {
+			listnode = malloc(sizeof(*listnode));
+			listnode->word = strdup(soundex_code);
+			word_list *newlistnode = malloc(sizeof(*newlistnode));
+			newlistnode->word = strdup(word);
+			newlistnode->next = NULL;
+			newlistnode->weight = .01;
+			listnode->next= newlistnode;
+			rb_tree_insert_node(soundex_tree, listnode);
+		}
+		node = node->next;
+	}
+	return spellt;
+}
+
+spell_t *
+spell_init(const char *dictionary_path, const char *whitelist_filepath)
+{
+	FILE *f;
+	spell_t *spellt;
+	trie_t *words_tree = NULL;
+	static rb_tree_t *soundex_tree;
+
+	spellt = malloc(sizeof(*spellt));
+	words_tree = trie_init();
 	spellt->dictionary = words_tree;
 	spellt->ngrams_tree = NULL;
 	spellt->soundex_tree = NULL;
@@ -1855,6 +1957,11 @@ double_metaphone(const char *s)
 	return pri;
 }
 
+char **
+get_completions(spell_t *spell, const char *word)
+{
+	return get_prefix_matches(spell->dictionary, word);
+}
 
 
 word_list *

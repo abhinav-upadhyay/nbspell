@@ -65,6 +65,7 @@ typedef struct spell_t {
 
 void free_list(char **);
 spell_t *spell_init(const char *, const char *);
+spell_t *spell_init2(word_list *, word_list *);
 int spell_is_known_word(spell_t *, const char *, int);
 word_list *spell_get_suggestions_slow(spell_t *, char *, size_t);
 word_list *spell_get_suggestions_fast(spell_t *, char *, size_t);
@@ -79,4 +80,6 @@ long get_count(char *, char);
 void free_word_list(word_list *);
 word_list *metaphone_spell_check(spell_t *, char *);
 int load_bigrams(spell_t *, const char *);
+char **get_completions(spell_t *, const char *);
+
 #endif
