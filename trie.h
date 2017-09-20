@@ -44,5 +44,7 @@ trie_t *trie_init(void);
 void trie_insert(trie_t **, const char *, size_t);
 size_t trie_get(trie_t *, const char *);
 void trie_destroy(trie_t *);
+trie_t *get_subtrie(trie_t *, const char *);
+char **get_prefix_matches(trie_t *, const char *);
 
 #endif

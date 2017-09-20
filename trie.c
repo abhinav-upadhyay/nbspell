@@ -27,7 +27,9 @@
  * SUCH DAMAGE.
  */
 
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 //#include <util.h>
 
 #include "trie.h"
@@ -48,11 +50,6 @@ trie_insert(trie_t **trie, const char *key, size_t value)
 
 	t = *trie;
 
-	if (c == 0) {
-		t->value = value;
-		return;
-	}
-
 	if (t->character == 0)
 		t->character = c;
 
@@ -62,7 +59,11 @@ trie_insert(trie_t **trie, const char *key, size_t value)
 	if (c < t->character)
 		return trie_insert(&(t->left), key, value);
 
-	return trie_insert(&(t->middle), key + 1, value);
+	if (key[1]  == 0) {
+		t->value = value;
+		return;
+	} else
+		return trie_insert(&(t->middle), key + 1, value);
 }
 
 size_t
@@ -72,14 +73,18 @@ trie_get(trie_t * t, const char *key)
 	if (t == NULL)
 		return 0;
 
-	if (key[0] == 0)
-		return t->value;
+	//if (key[0] == 0)
+	//	return t->value;
 
 	if (t->character == 0)
 		return 0;
 
-	if (c == t->character)
-		return trie_get(t->middle, key + 1);
+	if (c == t->character) {
+		if (key + 1 == 0)
+			return t->value;
+		else
+			return trie_get(t->middle, key + 1);
+	}
 
 	if (c > t->character)
 		return trie_get(t->right, key);
@@ -97,4 +102,75 @@ trie_destroy(trie_t *t)
 	if (t->right)
 		trie_destroy(t->right);
 	free(t);
+}
+
+trie_t *
+get_subtrie(trie_t *t, const char *key)
+{
+	char c = key[0];
+	if (t == NULL)
+		return NULL;
+
+	if (key[0] == 0)
+		return NULL;
+
+	if (t->character == 0)
+		return NULL;
+
+	if (c == t->character) {
+		if (key[1] == 0)
+			return t;
+		else
+			return get_subtrie(t->middle, key + 1);
+	}
+
+	if (c > t->character)
+		return get_subtrie(t->right, key);
+
+	return get_subtrie(t->left, key);
+}
+
+static void
+collect(trie_t *t, const char *prefix, char **list, size_t *list_offset, size_t *list_size)
+{
+	if (t == NULL)
+		return;
+
+	collect(t->left, prefix, list, list_offset, list_size);
+	char *new_prefix = NULL;
+	asprintf(&new_prefix, "%s%c", prefix, t->character);
+	if (t->value != 0) {
+		if ((*list_offset) == (*list_size)) {
+			size_t newsize = (*list_size) * 2;
+			list = realloc(list, sizeof(*list) * newsize);
+			*list_size = newsize;
+		}
+		list[*list_offset] = new_prefix;
+		(*list_offset)++;
+	}
+
+	collect(t->middle, new_prefix, list, list_offset, list_size);
+	collect(t->right, prefix, list, list_offset, list_size);
+}
+
+char **
+get_prefix_matches(trie_t *t, const char *prefix)
+{
+	if (t == NULL || prefix == NULL)
+		return NULL;
+
+	trie_t *subtrie = get_subtrie(t, prefix);
+	if (subtrie == NULL)
+		return NULL;
+
+	size_t list_size = 32;
+	char **list = malloc(list_size * sizeof(*list));
+	size_t list_offset = 0;
+
+	if (subtrie->value != 0)
+		list[list_offset++] = strdup(prefix);
+
+	collect(subtrie->middle, prefix, list, &list_offset, &list_size);
+	list[list_offset] = NULL;
+	return list;
 }
