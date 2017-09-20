@@ -73,14 +73,11 @@ trie_get(trie_t * t, const char *key)
 	if (t == NULL)
 		return 0;
 
-	//if (key[0] == 0)
-	//	return t->value;
-
 	if (t->character == 0)
 		return 0;
 
 	if (c == t->character) {
-		if (key + 1 == 0)
+		if (key[1] == 0)
 			return t->value;
 		else
 			return trie_get(t->middle, key + 1);
@@ -141,7 +138,7 @@ collect(trie_t *t, const char *prefix, char **list, size_t *list_offset, size_t 
 	asprintf(&new_prefix, "%s%c", prefix, t->character);
 	if (t->value != 0) {
 		if ((*list_offset) == (*list_size)) {
-			size_t newsize = (*list_size) * 2;
+			size_t newsize = (*list_size) + 16;
 			list = realloc(list, sizeof(*list) * newsize);
 			*list_size = newsize;
 		}
@@ -151,6 +148,15 @@ collect(trie_t *t, const char *prefix, char **list, size_t *list_offset, size_t 
 
 	collect(t->middle, new_prefix, list, list_offset, list_size);
 	collect(t->right, prefix, list, list_offset, list_size);
+}
+
+static int
+_compare_strings(const void *v1, const void *v2)
+{
+	const char *s1 = (const char *) v1;
+	const char *s2 = (const char *) v2;
+	int retval = strcmp(s1, s2);
+	return retval == 0? 0: retval * -1;
 }
 
 char **
@@ -163,14 +169,18 @@ get_prefix_matches(trie_t *t, const char *prefix)
 	if (subtrie == NULL)
 		return NULL;
 
-	size_t list_size = 32;
-	char **list = malloc(list_size * sizeof(*list));
+	size_t list_size = 128;
+	char **list = calloc(list_size,  sizeof(*list));
 	size_t list_offset = 0;
 
 	if (subtrie->value != 0)
 		list[list_offset++] = strdup(prefix);
 
 	collect(subtrie->middle, prefix, list, &list_offset, &list_size);
+	qsort(list, list_offset, sizeof(*list), _compare_strings);
+	if (list_offset == list_size)
+		list = realloc(list, (list_size + 1) * sizeof(*list));
+
 	list[list_offset] = NULL;
 	return list;
 }
