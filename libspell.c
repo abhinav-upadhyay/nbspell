@@ -1049,6 +1049,8 @@ spell_get_suggestions_slow(spell_t * spell, char *word, size_t nsuggestions)
 	word_list *candidates2;
 	word_list *soundexes = NULL;
 	word_list *tail;
+	if (word == NULL)
+		return NULL;
 	lower(word);
 	candidates = edits1(word, 1);
 	corrections = spell_get_corrections(spell, candidates, nsuggestions, word);
