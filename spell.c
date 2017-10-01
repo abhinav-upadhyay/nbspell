@@ -75,8 +75,6 @@ do_unigram(FILE *f, const char *whitelist_filepath, size_t nsuggestions, int fas
 			templine[wordsize] = 0;
 			word = templine;
 			templine += wordsize + 1;
-			if (strlen(word) <= 1)
-				continue;
 			while (*templine == ' ')
 				templine++;
 
