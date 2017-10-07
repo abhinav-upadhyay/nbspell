@@ -186,8 +186,8 @@ do_bigram(FILE *inputf, const char *whitelist_filepath, size_t nsuggestions)
 			 * No more words left to process, just do a unigram check and return
 			 */
             if (nextword == NULL) {
-                word_list *wl  = spell_get_suggestions_slow(spellt, nextword, nsuggestions);
-				print_word_list(wl, nextword);
+                word_list *wl  = spell_get_suggestions_slow(spellt, curword, nsuggestions);
+				print_word_list(wl, curword);
 				free_word_list(wl);
                 free(curword);
 				spell_destroy(spellt);
